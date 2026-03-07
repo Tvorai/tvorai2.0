@@ -55,6 +55,12 @@ export default function AppPage() {
     }
   }, [router])
 
+  // Clear preview and errors when switching tabs
+  useEffect(() => {
+    setPreviewUrl(null)
+    setActionError("")
+  }, [tab])
+
   const cost = useMemo(() => {
     if (tab === "t2i") return 12
     if (tab === "faceswap") return 20
