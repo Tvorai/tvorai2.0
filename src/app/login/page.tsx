@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,6 +30,7 @@ export default function LoginPage() {
   async function resendConfirmation() {
     setError("")
     setInfo("")
+    if (cooldown > 0) return
     if (!email) {
       setError("Zadejte e‑mail a zkuste znovu")
       return
@@ -41,6 +43,16 @@ export default function LoginPage() {
       setError(error.message || "Odeslání potvrzení selhalo")
     } else {
       setInfo("Poslali jsme nový potvrzovací e‑mail")
+      setCooldown(60)
+      const timer = setInterval(() => {
+        setCooldown((c) => {
+          if (c <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return c - 1
+        })
+      }, 1000)
     }
   }
 
