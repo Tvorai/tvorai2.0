@@ -483,12 +483,11 @@ export default function AppPage() {
                   border: "1px solid #2A2A2A",
                   borderRadius: 12,
                   padding: "10px 12px"
-                }}
-              >
-                <option value="3">3</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
-              </select>
+              }}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
             </>
           ) : null}
 
@@ -533,13 +532,12 @@ export default function AppPage() {
                   border: "1px solid #2A2A2A",
                   borderRadius: 12,
                   padding: "10px 12px"
-                }}
-              >
-                <option value="3">3</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
-              </select>
-            </>
+              }}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+            </select>
+          </>
           ) : null}
         </section>
 
