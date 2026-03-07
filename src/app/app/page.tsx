@@ -564,7 +564,7 @@ export default function AppPage() {
               background: surface,
               borderRadius: 24,
               padding: 16,
-              border: "4px solid #00C8D7", // Made border thicker and colored
+              border: "1px solid #2A2A2A",
               height: 480,
               width: "100%",
               display: "flex",
@@ -572,7 +572,7 @@ export default function AppPage() {
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              boxShadow: "0 0 20px rgba(0,200,215,0.3)", // Added outer glow
+              boxShadow: "inset 0 0 60px rgba(0,0,0,0.5)",
               position: "relative"
             }}
           >
@@ -639,7 +639,7 @@ export default function AppPage() {
         </section>
       </div>
 
-      <div style={{ display: "grid", placeItems: "center", padding: "40px 24px 60px" }}>
+      <div style={{ display: "grid", placeItems: "center", padding: "8px 24px 28px" }}>
         <button
           onClick={handleAction}
           disabled={
@@ -650,7 +650,7 @@ export default function AppPage() {
             (tab === "t2v" && !prompt.trim())
           }
           style={{
-            background: "#FF00FF", // CHANGED TO MAGENTA FOR TESTING
+            background: primary,
             color: text,
             border: "none",
             cursor:
@@ -662,23 +662,23 @@ export default function AppPage() {
                 ? "not-allowed"
                 : "pointer",
             borderRadius: 999,
-            padding: "20px 40px",
+            padding: "18px 28px",
             fontWeight: 900,
-            fontSize: 24,
-            minWidth: 400,
+            fontSize: 20,
+            minWidth: 360,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 10,
-            boxShadow: "0 8px 0 #800080" // Darker magenta shadow
+            boxShadow: "0 6px 0 rgba(0, 0, 0, 0.35)"
           }}
           title=""
         >
           <span>
-            {tab === "t2i" ? "VYGENEROVAT (TEST)" : null}
-            {tab === "faceswap" ? "VYMĚNIT TVÁŘE (TEST)" : null}
-            {tab === "i2v" ? "VYTVOŘIT VIDEO (TEST)" : null}
-            {tab === "t2v" ? "VYGENEROVAT VIDEO (TEST)" : null}
+            {tab === "t2i" ? "Generovat obrázek" : null}
+            {tab === "faceswap" ? "Vyměnit tváře" : null}
+            {tab === "i2v" ? "Vytvořit video" : null}
+            {tab === "t2v" ? "Vygenerovat video" : null}
           </span>
           <span
             style={{
