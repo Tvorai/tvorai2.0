@@ -409,20 +409,6 @@ export default function AppPage() {
                       </option>
                     ))}
                   </select>
-                  <div
-                    aria-hidden
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 13,
-                      background: "#2A2A2A",
-                      display: "grid",
-                      placeItems: "center",
-                      color: text
-                    }}
-                  >
-                    ↕
-                  </div>
                 </div>
               </div>
             </>
