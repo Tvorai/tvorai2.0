@@ -565,28 +565,62 @@ export default function AppPage() {
               borderRadius: 24,
               padding: 16,
               border: "1px solid #2A2A2A",
-              height: 480, // Increased height for better preview
+              height: 480,
               width: "100%",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              overflow: "hidden", // Ensure content stays inside
+              overflow: "hidden",
               boxShadow: "inset 0 0 60px rgba(0,0,0,0.5)",
               position: "relative"
             }}
           >
             {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Náhled"
-                style={{ 
-                  width: "100%", 
-                  height: "100%", 
-                  objectFit: "contain", // Fix size within box
-                  borderRadius: 16 
-                }}
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Náhled"
+                  style={{ 
+                    width: "100%", 
+                    height: "100%", 
+                    objectFit: "contain",
+                    borderRadius: 16,
+                    display: "block"
+                  }}
+                />
+                {!loading && (
+                  <button
+                    onClick={handleDownload}
+                    style={{
+                      position: "absolute",
+                      bottom: 20,
+                      right: 20,
+                      background: primary,
+                      color: text,
+                      border: "none",
+                      borderRadius: 12,
+                      padding: "10px 16px",
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                      zIndex: 10
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Stáhnout
+                  </button>
+                )}
+              </>
             ) : (
               <div style={{ opacity: 0.6, textAlign: "center" }}>
                 <div style={{ fontSize: 14, marginBottom: 4, color: muted }}>Zde se zobrazí výsledek</div>
@@ -666,34 +700,6 @@ export default function AppPage() {
           </span>
         </button>
         {actionError ? <div style={{ color: "#F87171", marginTop: 10 }}>{actionError}</div> : null}
-        
-        {previewUrl && !loading && (
-          <button
-            onClick={handleDownload}
-            style={{
-              marginTop: 16,
-              background: "transparent",
-              color: primary,
-              border: `2px solid ${primary}`,
-              borderRadius: 999,
-              padding: "12px 24px",
-              fontWeight: 800,
-              fontSize: 16,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.2s"
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Stáhnout výsledek
-          </button>
-        )}
       </div>
     </div>
   )
