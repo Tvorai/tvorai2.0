@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         prompt,
         size,
         sequential_image_generation: "disabled",
-        watermark: true
+        watermark: false
       })
     })
     if (!res.ok) {
