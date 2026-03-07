@@ -565,7 +565,7 @@ export default function AppPage() {
               borderRadius: 24,
               padding: 16,
               border: "1px solid #2A2A2A",
-              height: 360,
+              height: 280, // Even smaller height to be absolutely sure
               width: "100%",
               display: "flex",
               flexDirection: "column",
