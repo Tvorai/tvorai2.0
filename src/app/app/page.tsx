@@ -656,7 +656,21 @@ export default function AppPage() {
             alignItems: "center",
             justifyContent: "center",
             gap: 10,
-            boxShadow: "0 6px 0 rgba(0, 0, 0, 0.35)"
+            boxShadow: "0 6px 0 rgba(0, 0, 0, 0.35)",
+            transition: "all 0.2s ease",
+            opacity: loading ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.opacity = "0.8";
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) e.currentTarget.style.opacity = "1";
+          }}
+          onMouseDown={(e) => {
+            if (!loading) e.currentTarget.style.opacity = "0.7";
+          }}
+          onMouseUp={(e) => {
+            if (!loading) e.currentTarget.style.opacity = "0.8";
           }}
           title=""
         >
@@ -671,10 +685,10 @@ export default function AppPage() {
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              background: "#0E1111",
-              padding: "6px 10px",
+              background: "transparent",
+              padding: "6px 2px",
               borderRadius: 999,
-              border: `2px solid ${text}`
+              border: `none`
             }}
           >
             <span style={{ fontWeight: 800 }}>{cost}</span>
