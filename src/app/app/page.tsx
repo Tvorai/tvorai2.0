@@ -177,33 +177,9 @@ export default function AppPage() {
           grid-template-columns: 1fr 1fr;
           gap: 28px;
         }
-        .i2v-row {
-          display: flex;
-          gap: 12px;
-        }
-        .i2v-col {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-        .i2v-box {
-          background: #1A1A1A;
-          border-radius: 24px;
-          padding: 16px;
-          border: 1px solid #2A2A2A;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
         @media (max-width: 900px) {
           .app-grid {
             grid-template-columns: 1fr;
-          }
-        }
-        @media (max-width: 600px) {
-          .i2v-row {
-            flex-direction: column;
           }
         }
       `}</style>
@@ -486,47 +462,53 @@ export default function AppPage() {
 
           {tab === "i2v" ? (
             <>
-              <div className="i2v-row">
-                <div className="i2v-col">
-                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Z obrázku video:</div>
-                  <div className="i2v-box">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setImageInput(e.target.files?.[0] ?? null)}
-                      style={{ color: text }}
-                    />
-                  </div>
-                </div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Z obrázku video:</div>
+              <div
+                style={{
+                  background: surface,
+                  borderRadius: 24,
+                  padding: 16,
+                  border: "1px solid #2A2A2A",
+                  marginBottom: 12
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageInput(e.target.files?.[0] ?? null)}
+                  style={{ color: text }}
+                />
+              </div>
 
-                <div className="i2v-col">
-                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Prompt (popis videa):</div>
-                  <div
-                    className="i2v-box"
-                    style={{
-                      boxShadow: "inset 0 0 40px rgba(0,0,0,0.4)",
-                    }}
-                  >
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Popište pohyb nebo změnu, např. 'zoom out, natural motion'"
-                      rows={4}
-                      style={{
-                        width: "100%",
-                        background: "transparent",
-                        color: text,
-                        border: "none",
-                        outline: "none",
-                        resize: "vertical",
-                        minHeight: 80,
-                        fontSize: 16,
-                        lineHeight: 1.5,
-                        fontFamily: "inherit"
-                      }}
-                    />
-                  </div>
-                </div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Prompt (popis videa):</div>
+              <div
+                style={{
+                  background: surface,
+                  borderRadius: 24,
+                  padding: 16,
+                  border: "1px solid #2A2A2A",
+                  boxShadow: "inset 0 0 40px rgba(0,0,0,0.4)",
+                  marginBottom: 12
+                }}
+              >
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Popište pohyb nebo změnu, např. 'zoom out, natural motion'"
+                  rows={4}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    color: text,
+                    border: "none",
+                    outline: "none",
+                    resize: "vertical",
+                    minHeight: 80,
+                    fontSize: 16,
+                    lineHeight: 1.5,
+                    fontFamily: "inherit"
+                  }}
+                />
               </div>
               
               <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Délka videa (s):</div>
