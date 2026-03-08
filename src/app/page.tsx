@@ -12,16 +12,29 @@ export default function HomePage() {
   const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
+  const [showResend, setShowResend] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError("")
     setInfo("")
+    setShowResend(false)
+    setShowForgotPassword(false)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
-      setError(error.message || "Přihlášení selhalo")
+      console.log("Login error:", error.message)
+      if (error.message === "Invalid login credentials") {
+        setError("Nesprávné přihlašovací údaje")
+        setShowForgotPassword(true)
+      } else if (error.message === "Email not confirmed") {
+        setError("E-mail není potvrzen")
+        setShowResend(true)
+      } else {
+        setError(error.message || "Přihlášení selhalo")
+      }
     } else {
       router.push("/app")
     }
@@ -166,21 +179,28 @@ export default function HomePage() {
           {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}
           
           <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-            <button
-              onClick={resendConfirmation}
-              disabled={cooldown > 0}
-              style={{
-                background: "transparent",
-                color: primary,
-                border: "none",
-                cursor: cooldown > 0 ? "not-allowed" : "pointer",
-                opacity: cooldown > 0 ? 0.6 : 1,
-                fontWeight: 600,
-                fontSize: 14,
-              }}
-            >
-              {cooldown > 0 ? `Zaslat znovu (${cooldown}s)` : "Zaslat potvrzovací e‑mail znovu"}
-            </button>
+            {showResend && (
+              <button
+                onClick={resendConfirmation}
+                disabled={cooldown > 0}
+                style={{
+                  background: "transparent",
+                  color: primary,
+                  border: "none",
+                  cursor: cooldown > 0 ? "not-allowed" : "pointer",
+                  opacity: cooldown > 0 ? 0.6 : 1,
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                {cooldown > 0 ? `Zaslat znovu (${cooldown}s)` : "Zaslat potvrzovací e‑mail znovu"}
+              </button>
+            )}
+            {showForgotPassword && (
+              <p style={{ color: primary, margin: 0, fontWeight: 600, cursor: "pointer" }}>
+                Zapomněli jste heslo?
+              </p>
+            )}
             <p style={{ fontWeight: 600, fontSize: 16 }}>
               <span style={{ opacity: 0.7 }}>Nemáte účet?</span>{" "}
               <a href="/register" style={{ color: primary, textDecoration: "none", fontWeight: 800 }}>
