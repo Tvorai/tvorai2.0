@@ -183,6 +183,18 @@ export default function AppPage() {
         }
         .i2v-col {
           flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .i2v-box {
+          background: #1A1A1A;
+          border-radius: 24px;
+          padding: 16px;
+          border: 1px solid #2A2A2A;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         @media (max-width: 900px) {
           .app-grid {
@@ -477,15 +489,7 @@ export default function AppPage() {
               <div className="i2v-row">
                 <div className="i2v-col">
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>Z obrázku video:</div>
-                  <div
-                    style={{
-                      background: surface,
-                      borderRadius: 24,
-                      padding: 16,
-                      border: "1px solid #2A2A2A",
-                      marginBottom: 12
-                    }}
-                  >
+                  <div className="i2v-box">
                     <input
                       type="file"
                       accept="image/*"
@@ -496,15 +500,11 @@ export default function AppPage() {
                 </div>
 
                 <div className="i2v-col">
-                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Prompt – co by mělo video z obrázku zobrazovat:</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Prompt (popis videa):</div>
                   <div
+                    className="i2v-box"
                     style={{
-                      background: surface,
-                      borderRadius: 24,
-                      padding: 16,
-                      border: "1px solid #2A2A2A",
                       boxShadow: "inset 0 0 40px rgba(0,0,0,0.4)",
-                      marginBottom: 12
                     }}
                   >
                     <textarea
@@ -529,7 +529,7 @@ export default function AppPage() {
                 </div>
               </div>
               
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Délka videa (s):</div>
+              <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Délka videa (s):</div>
               <select
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
