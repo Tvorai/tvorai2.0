@@ -473,6 +473,38 @@ export default function AppPage() {
                   style={{ color: text }}
                 />
               </div>
+              
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Prompt – co by mělo video z obrázku zobrazovat:</div>
+              <div
+                style={{
+                  background: surface,
+                  borderRadius: 24,
+                  padding: 16,
+                  border: "1px solid #2A2A2A",
+                  boxShadow: "inset 0 0 40px rgba(0,0,0,0.4)",
+                  marginBottom: 12
+                }}
+              >
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Popište pohyb nebo změnu, např. 'zoom out, natural motion'"
+                  rows={4}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    color: text,
+                    border: "none",
+                    outline: "none",
+                    resize: "vertical",
+                    minHeight: 80,
+                    fontSize: 16,
+                    lineHeight: 1.5,
+                    fontFamily: "inherit"
+                  }}
+                />
+              </div>
+
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Délka videa (s):</div>
               <select
                 value={duration}
