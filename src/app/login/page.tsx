@@ -72,15 +72,25 @@ export default function LoginPage() {
         flexWrap: "wrap",
       }}
     >
+      <style>{`
+        .login-container {
+          padding: 40px;
+        }
+        @media (max-width: 600px) {
+          .login-container {
+            padding: 20px 24px;
+          }
+        }
+      `}</style>
       {/* Left side - Form */}
       <div
+        className="login-container"
         style={{
           flex: "1 1 500px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          padding: 40,
           background: bg,
         }}
       >
