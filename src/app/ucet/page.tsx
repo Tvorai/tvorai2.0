@@ -337,7 +337,7 @@ export default function AccountPage() {
                   }}
                   style={{
                     justifySelf: "start",
-                    background: "#374151",
+                    background: primary,
                     color: text,
                     border: "none",
                     borderRadius: 12,
