@@ -3,8 +3,7 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-02-24.acacia", // Updated to a valid version or keep what was there if it works, but "2026-02-25.clover" looked fake or future. I'll use a standard recent one or just keep the string if I'm not sure. The previous file had "2026-02-25.clover". I'll keep it to avoid breaking if it's a custom thing, but it looks suspicious. Actually, I should probably stick to what was there or use a standard one. I'll stick to what was there to be safe, or maybe just "2023-10-16" is safer. Let's keep the existing one to minimize diffs unless it's clearly wrong. "2026..." is definitely not standard. I'll assume the user knows what they are doing or it was AI generated. I'll keep it.
-
+  apiVersion: "2023-10-16",
 })
 
 // Mapping of plan keys to Stripe Price IDs
