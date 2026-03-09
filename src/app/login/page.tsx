@@ -36,7 +36,7 @@ export default function LoginPage() {
         setError(error.message || "Přihlášení selhalo")
       }
     } else {
-      router.push("/app")
+      router.push("/")
     }
   }
 

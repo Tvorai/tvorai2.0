@@ -39,7 +39,7 @@ export default function RegisterPage() {
       if (data?.user && !data.user.confirmed_at) {
         setInfo("Registrace proběhla. Zkontrolujte e‑mail a potvrďte adresu.")
       } else {
-        router.push("/app")
+        router.push("/")
       }
     }
   }

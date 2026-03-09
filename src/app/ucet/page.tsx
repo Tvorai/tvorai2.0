@@ -125,7 +125,7 @@ export default function AccountPage() {
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Účet</h1>
-          <a href="/app" style={{ color: primary, textDecoration: "none", fontWeight: 700 }}>
+          <a href="/" style={{ color: primary, textDecoration: "none", fontWeight: 700 }}>
             Zpět
           </a>
         </div>
