@@ -2,9 +2,22 @@
 
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function TestCheckoutPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push("/login")
+      }
+      setLoading(false)
+    }
+    checkSession()
+  }, [router])
 
   const handleCheckout = async () => {
     // 1. Verify user session
@@ -37,6 +50,10 @@ export default function TestCheckoutPage() {
       console.error(data)
       alert("Nepodarilo sa vytvoriť checkout session")
     }
+  }
+
+  if (loading) {
+    return <div style={{ padding: "40px", color: "white" }}>Načítavam...</div>
   }
 
   return (
