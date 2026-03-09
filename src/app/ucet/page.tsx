@@ -4,6 +4,15 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 
+const PLAN_MAP: Record<string, string> = {
+  starter_monthly: "Starter",
+  pro_monthly: "Pro",
+  studio_monthly: "Studio",
+  starter_yearly: "Starter Roční",
+  pro_yearly: "Pro Roční",
+  studio_yearly: "Studio Roční",
+}
+
 export default function AccountPage() {
   const router = useRouter()
 
@@ -53,9 +62,9 @@ export default function AccountPage() {
           .from('subscriptions')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
+          .eq('status', 'active')
           .maybeSingle()
+
         if (!canceled) {
           setSubscription(subData)
           setLoadingSub(false)
@@ -226,7 +235,7 @@ export default function AccountPage() {
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
           ) : !subscription ? (
             <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ color: "#9CA3AF" }}>Momentálne nemáte aktívne predplatné.</div>
+              <div style={{ color: "#9CA3AF" }}>No active subscription</div>
               <button
                 onClick={() => router.push("/cenik")}
                 style={{
@@ -249,7 +258,7 @@ export default function AccountPage() {
                 <div>
                   <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Typ plánu</div>
                   <div style={{ fontWeight: 600 }}>
-                    {profile?.plan === 'basic' ? 'Basic – 100 kreditov mesačne' : (profile?.plan || 'Free')}
+                    {PLAN_MAP[profile?.plan] || profile?.plan || 'Free'}
                   </div>
                 </div>
                 <div>
@@ -273,8 +282,16 @@ export default function AccountPage() {
                   <div style={{ fontWeight: 600 }}>{profile?.credits ?? 0}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Zakoupeno dne</div>
-                  <div style={{ fontWeight: 600 }}>{new Date(subscription.created_at).toLocaleDateString('cs-CZ')}</div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID předplatného</div>
+                  <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
+                    {subscription.stripe_subscription_id}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID ceny</div>
+                  <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
+                    {subscription.stripe_price_id || '—'}
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Platné do</div>
@@ -284,20 +301,11 @@ export default function AccountPage() {
                       : '—'}
                   </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Datum registrace</div>
-                  <div style={{ fontWeight: 600 }}>
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('cs-CZ') : '—'}
-                  </div>
-                </div>
               </div>
 
               <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4 }}>
                 <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
                   CID: {profile?.stripe_customer_id || '—'}
-                </div>
-                <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
-                  SUB: {subscription.stripe_subscription_id || '—'}
                 </div>
               </div>
 
