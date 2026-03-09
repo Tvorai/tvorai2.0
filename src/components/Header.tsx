@@ -128,6 +128,22 @@ export default function Header() {
                 zIndex: 100
               }}
             >
+              <a
+                href="https://ucet.tvorai.cz/"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  background: "transparent",
+                  color: text,
+                  border: "none",
+                  padding: "10px 12px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  textDecoration: "none"
+                }}
+              >
+                Domov
+              </a>
               <button
                 onClick={() => {
                   setMenuOpen(false)
@@ -207,7 +223,8 @@ export default function Header() {
                   padding: "10px 12px",
                   textAlign: "left",
                   cursor: "pointer",
-                  textDecoration: "none"
+                  textDecoration: "none",
+                  fontSize: 12
                 }}
               >
                 Podpora
