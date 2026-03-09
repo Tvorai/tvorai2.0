@@ -149,7 +149,7 @@ export async function POST(req: Request) {
 
       if (profile && subscriptionId) {
         // Fetch subscription to get metadata (plan & credits)
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription
         
         const plan = subscription.metadata?.plan
         const creditsStr = subscription.metadata?.credits
