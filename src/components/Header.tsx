@@ -34,7 +34,12 @@ export default function Header() {
       }
     }
     load()
+
+    const handleUpdate = () => load()
+    window.addEventListener("credits-updated", handleUpdate)
+
     return () => {
+      window.removeEventListener("credits-updated", handleUpdate)
       canceled = true
     }
   }, [])

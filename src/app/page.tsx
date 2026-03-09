@@ -24,6 +24,7 @@ export default function AppPage() {
   const [imageInput, setImageInput] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [actionError, setActionError] = useState("")
@@ -38,6 +39,7 @@ export default function AppPage() {
         router.push("/login")
         return
       }
+      setUserId(userId)
       const { data, error } = await supabase
         .from("profiles")
         .select("credits")
@@ -108,7 +110,7 @@ export default function AppPage() {
         const res = await fetch("/api/novita/seedream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, size: currentSize() })
+          body: JSON.stringify({ prompt, size: currentSize(), userId })
         })
         const data = await res.json()
         setLoading(false)
@@ -118,6 +120,7 @@ export default function AppPage() {
         }
         setPreviewUrl(data.url)
         setCredits((c) => (c !== null ? c - cost : null))
+        window.dispatchEvent(new Event("credits-updated"))
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
@@ -131,6 +134,7 @@ export default function AppPage() {
         const fd = new FormData()
         fd.append("face", swapSrc)
         fd.append("target", swapDst)
+        if (userId) fd.append("userId", userId)
         const res = await fetch("/api/novita/merge-face", { method: "POST", body: fd })
         const data = await res.json()
         setLoading(false)
@@ -140,6 +144,7 @@ export default function AppPage() {
         }
         setPreviewUrl(data.url)
         setCredits((c) => (c !== null ? c - cost : null))
+        window.dispatchEvent(new Event("credits-updated"))
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
