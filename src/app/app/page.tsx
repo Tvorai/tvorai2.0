@@ -63,10 +63,11 @@ export default function AppPage() {
 
   const cost = useMemo(() => {
     if (tab === "t2i") return 12
-    if (tab === "faceswap") return 20
-    if (tab === "i2v") return 60
-    return 60
-  }, [aspect, tab])
+    if (tab === "faceswap") return 12
+    if (tab === "i2v") return duration === "10" ? 72 : 36
+    if (tab === "t2v") return duration === "10" ? 72 : 36
+    return 12
+  }, [aspect, tab, duration])
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -93,6 +94,14 @@ export default function AppPage() {
 
   async function handleAction() {
     setActionError("")
+
+    // Check credits
+    if (credits === null) return
+    if (credits < cost) {
+      setActionError("Nedostatek kreditů pro tuto akci")
+      return
+    }
+
     if (tab === "t2i") {
       try {
         setLoading(true)
@@ -108,6 +117,7 @@ export default function AppPage() {
           return
         }
         setPreviewUrl(data.url)
+        setCredits((c) => (c !== null ? c - cost : null))
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
@@ -129,6 +139,7 @@ export default function AppPage() {
           return
         }
         setPreviewUrl(data.url)
+        setCredits((c) => (c !== null ? c - cost : null))
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
