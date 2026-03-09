@@ -233,7 +233,7 @@ export default function AccountPage() {
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
-              {!subscription && !profile?.stripe_customer_id ? (
+              {!subscription ? (
                 <>
                   <div style={{ color: "#9CA3AF" }}>No active subscription</div>
                   <button
@@ -252,7 +252,7 @@ export default function AccountPage() {
                     Koupit předplatné
                   </button>
                 </>
-              ) : subscription ? (
+              ) : (
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
@@ -309,7 +309,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                 </>
-              ) : null}
+              )}
 
               {profile?.stripe_customer_id && (
                 <button
