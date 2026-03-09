@@ -313,11 +313,11 @@ export default function AccountPage() {
                 onClick={async () => {
                   try {
                     const { data: { session } } = await supabase.auth.getSession()
-                    const res = await fetch("/api/stripe/create-portal-session", {
+                    if (!session?.user) return
+                    
+                    const res = await fetch("/api/stripe/portal", {
                       method: "POST",
-                      headers: {
-                        Authorization: session?.access_token || "",
-                      },
+                      body: JSON.stringify({ userId: session.user.id }),
                     })
                     const data = await res.json()
                     if (data.url) {
