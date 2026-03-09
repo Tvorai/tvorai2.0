@@ -233,116 +233,122 @@ export default function AccountPage() {
           
           {loadingSub ? (
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
-          ) : !subscription ? (
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ color: "#9CA3AF" }}>No active subscription</div>
-              <button
-                onClick={() => router.push("/cenik")}
-                style={{
-                  justifySelf: "start",
-                  background: primary,
-                  color: text,
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                Koupit předplatné
-              </button>
-            </div>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Typ plánu</div>
-                  <div style={{ fontWeight: 600 }}>
-                    {PLAN_MAP[profile?.plan] || profile?.plan || 'Free'}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Stav</div>
-                  <div>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "4px 8px",
-                      borderRadius: 999,
-                      fontSize: 12,
+              {!subscription ? (
+                <>
+                  <div style={{ color: "#9CA3AF" }}>No active subscription</div>
+                  <button
+                    onClick={() => router.push("/cenik")}
+                    style={{
+                      justifySelf: "start",
+                      background: primary,
+                      color: text,
+                      border: "none",
+                      borderRadius: 12,
+                      padding: "10px 14px",
                       fontWeight: 700,
-                      background: subscription.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : subscription.status === 'canceled' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: subscription.status === 'active' ? '#34D399' : subscription.status === 'canceled' ? '#F87171' : '#FBBF24',
-                    }}>
-                      {subscription.status === 'active' ? 'Aktívne' : subscription.status === 'canceled' ? 'Zrušené' : subscription.status}
-                    </span>
+                      cursor: "pointer"
+                    }}
+                  >
+                    Koupit předplatné
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Typ plánu</div>
+                      <div style={{ fontWeight: 600 }}>
+                        {PLAN_MAP[profile?.plan] || profile?.plan || 'Free'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Stav</div>
+                      <div>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "4px 8px",
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: subscription.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : subscription.status === 'canceled' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                          color: subscription.status === 'active' ? '#34D399' : subscription.status === 'canceled' ? '#F87171' : '#FBBF24',
+                        }}>
+                          {subscription.status === 'active' ? 'Aktívne' : subscription.status === 'canceled' ? 'Zrušené' : subscription.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Kredity</div>
+                      <div style={{ fontWeight: 600 }}>{profile?.credits ?? 0}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID předplatného</div>
+                      <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
+                        {subscription.stripe_subscription_id}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID ceny</div>
+                      <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
+                        {subscription.stripe_price_id || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Platné do</div>
+                      <div style={{ fontWeight: 600 }}>
+                        {subscription.current_period_end 
+                          ? new Date(subscription.current_period_end * 1000).toLocaleDateString('cs-CZ')
+                          : '—'}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Kredity</div>
-                  <div style={{ fontWeight: 600 }}>{profile?.credits ?? 0}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID předplatného</div>
-                  <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
-                    {subscription.stripe_subscription_id}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>ID ceny</div>
-                  <div style={{ fontWeight: 600, fontSize: 12, fontFamily: 'monospace' }}>
-                    {subscription.stripe_price_id || '—'}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Platné do</div>
-                  <div style={{ fontWeight: 600 }}>
-                    {subscription.current_period_end 
-                      ? new Date(subscription.current_period_end * 1000).toLocaleDateString('cs-CZ')
-                      : '—'}
-                  </div>
-                </div>
-              </div>
 
-              <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
-                  CID: {profile?.stripe_customer_id || '—'}
-                </div>
-              </div>
+                  <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4 }}>
+                    <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
+                      CID: {profile?.stripe_customer_id || '—'}
+                    </div>
+                  </div>
+                </>
+              )}
 
-              <button
-                onClick={async () => {
-                  try {
-                    const { data: { session } } = await supabase.auth.getSession()
-                    if (!session?.user) return
-                    
-                    const res = await fetch("/api/stripe/portal", {
-                      method: "POST",
-                      body: JSON.stringify({ userId: session.user.id }),
-                    })
-                    const data = await res.json()
-                    if (data.url) {
-                      window.location.href = data.url
-                    } else {
-                      setError("Chyba při načítání správy předplatného")
+              {profile?.stripe_customer_id && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (!session?.user) return
+                      
+                      const res = await fetch("/api/stripe/portal", {
+                        method: "POST",
+                        body: JSON.stringify({ userId: session.user.id }),
+                      })
+                      const data = await res.json()
+                      if (data.url) {
+                        window.location.href = data.url
+                      } else {
+                        setError("Chyba při načítání správy předplatného")
+                      }
+                    } catch (e) {
+                      setError("Chyba při komunikaci se serverem")
                     }
-                  } catch (e) {
-                    setError("Chyba při komunikaci se serverem")
-                  }
-                }}
-                style={{
-                  justifySelf: "start",
-                  background: "#374151",
-                  color: text,
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  marginTop: 12
-                }}
-              >
-                Spravovat předplatné
-              </button>
+                  }}
+                  style={{
+                    justifySelf: "start",
+                    background: "#374151",
+                    color: text,
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    marginTop: 12
+                  }}
+                >
+                  Spravovat předplatné
+                </button>
+              )}
             </div>
           )}
         </section>
