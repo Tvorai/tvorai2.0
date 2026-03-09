@@ -3,7 +3,7 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2026-02-25.clover" as any,
+  apiVersion: "2023-10-16" as any,
 })
 
 export async function POST(req: Request) {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Stripe portal session error:", error)
     return NextResponse.json(
-      { error: "Failed to create portal session" },
+      { error: error instanceof Error ? error.message : "Failed to create portal session" },
       { status: 500 }
     )
   }

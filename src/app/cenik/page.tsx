@@ -54,12 +54,13 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        alert("Chyba při vytváření platby")
+        console.error("Payment creation error:", data)
+        alert(data.error || "Chyba při vytváření platby")
         setLoading(null)
       }
     } catch (e) {
       console.error(e)
-      alert("Chyba připojení")
+      alert("Chyba připojení: " + (e instanceof Error ? e.message : String(e)))
       setLoading(null)
     }
   }

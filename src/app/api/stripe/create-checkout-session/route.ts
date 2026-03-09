@@ -3,7 +3,7 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2026-02-25.clover" as any,
+  apiVersion: "2023-10-16" as any,
 })
 
 // Mapping of plan keys to Stripe Price IDs
@@ -58,7 +58,10 @@ export async function POST(req: Request) {
     // Fallback to STRIPE_BASIC_PRICE_ID if specific plan price is not found (backward compatibility or default)
     const priceId = PLANS[planKey] || process.env.STRIPE_BASIC_PRICE_ID
 
+    console.log(`Creating checkout session for user ${userId}, plan: ${planKey}, priceId: ${priceId}`)
+
     if (!priceId) {
+      console.error(`Price ID not found for plan: ${planKey}`)
       return NextResponse.json(
         { error: "Price ID not found for plan: " + planKey },
         { status: 400 }
@@ -87,7 +90,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Stripe checkout session error:", error)
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: error instanceof Error ? error.message : "Failed to create checkout session" },
       { status: 500 }
     )
   }
