@@ -228,7 +228,7 @@ export default function AccountPage() {
             <div style={{ display: "grid", gap: 12 }}>
               <div style={{ color: "#9CA3AF" }}>Momentálne nemáte aktívne predplatné.</div>
               <button
-                onClick={() => router.push("/pricing")}
+                onClick={() => router.push("/cenik")}
                 style={{
                   justifySelf: "start",
                   background: primary,

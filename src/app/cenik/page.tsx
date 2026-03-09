@@ -109,6 +109,7 @@ export default function PricingPage() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        justifyContent: "center",
         padding: "40px 20px",
       }}
     >
@@ -165,7 +166,6 @@ export default function PricingPage() {
           onClick={() => setBillingCycle("yearly")}
         >
           Ročně
-          <span style={{ fontSize: 12, color: primary, fontWeight: 400 }}>2 měsíce zdarma</span>
         </span>
       </div>
 
@@ -201,24 +201,6 @@ export default function PricingPage() {
                 zIndex: plan.highlight ? 10 : 1,
               }}
             >
-              {plan.highlight && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    right: -32,
-                    background: primary,
-                    color: "#000",
-                    padding: "4px 32px",
-                    transform: "rotate(45deg)",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.5)"
-                  }}
-                >
-                  NEJOBLÍBENĚJŠÍ
-                </div>
-              )}
               
               <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>{plan.name}</h2>
               
@@ -271,6 +253,21 @@ export default function PricingPage() {
         })}
       </div>
       
+      <div style={{ marginTop: 24, textAlign: "center", maxWidth: 600 }}>
+        <p style={{ color: "#9CA3AF", fontSize: 14 }}>
+          Pokud žádný z našich předplatných neodpovídá vašim potřebám, kontaktujte nás{" "}
+          <a
+            href="https://www.tvorai.cz/zadost-o-enterprise/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#EF4444", fontWeight: 700, textDecoration: "none" }}
+          >
+            ZDE
+          </a>{" "}
+          a my pro vás připravíme předplatné na míru.
+        </p>
+      </div>
+
       <div style={{ marginTop: 40 }}>
         <a href="/ucet" style={{ color: "#6B7280", textDecoration: "none", fontSize: 14 }}>
           Zpět na účet
