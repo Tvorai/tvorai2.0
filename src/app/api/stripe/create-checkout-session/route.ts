@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
+import { createClient } from "@supabase/supabase-js"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2026-02-25.clover",
@@ -7,12 +8,33 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { userId, email } = body
+    // 1. Verify user session via Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get("Authorization")!,
+          },
+        },
+      }
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    const userId = user.id
+    const email = user.email
 
     if (!userId || !email) {
       return NextResponse.json(
-        { error: "Missing userId or email" },
+        { error: "User data incomplete" },
         { status: 400 }
       )
     }

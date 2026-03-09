@@ -1,17 +1,33 @@
 "use client"
 
+import { supabase } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+
 export default function TestCheckoutPage() {
+  const router = useRouter()
+
   const handleCheckout = async () => {
+    // 1. Verify user session
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+      router.push("/login")
+      return
+    }
+
     const res = await fetch("/api/stripe/create-checkout-session", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({
-        userId: "11111111-1111-1111-1111-111111111111",
-        email: "test@example.com",
-      }),
+      body: JSON.stringify({}),
     })
+
+    if (res.status === 401) {
+      router.push("/login")
+      return
+    }
 
     const data = await res.json()
 
