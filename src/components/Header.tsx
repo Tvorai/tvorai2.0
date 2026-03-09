@@ -49,9 +49,9 @@ export default function Header() {
   return (
     <header
       style={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
         alignItems: "center",
-        justifyContent: "space-between",
         padding: "16px 24px"
       }}
     >
@@ -66,7 +66,7 @@ export default function Header() {
         />
       </div>
       
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <div
           style={{
             display: "inline-flex",
@@ -75,7 +75,8 @@ export default function Header() {
             background: "#0E1111",
             borderRadius: 999,
             padding: "8px 16px",
-            border: `2px solid ${primary}`
+            border: `2px solid ${primary}`,
+            color: text
           }}
           title="Zůstatek kreditů"
         >
@@ -86,6 +87,9 @@ export default function Header() {
             style={{ width: 20, height: 20, objectFit: "contain" }}
           />
         </div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ position: "relative" }}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
