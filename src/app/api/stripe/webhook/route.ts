@@ -79,14 +79,14 @@ export async function POST(req: Request) {
           })
           .eq("id", userId)
 
-        // 2. Insert subscription record
-        await supabase.from("subscriptions").insert({
+        // 2. Insert or Update subscription record
+        await supabase.from("subscriptions").upsert({
           user_id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           status: "active",
           current_period_end: null, // Can be updated via invoice.payment_succeeded or retrieved
-        })
+        }, { onConflict: 'user_id' })
 
         // 3. Log transaction
         await supabase.from("credit_transactions").insert({

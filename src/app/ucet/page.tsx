@@ -62,7 +62,8 @@ export default function AccountPage() {
           .from('subscriptions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
 
         if (!canceled) {
