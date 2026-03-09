@@ -177,13 +177,17 @@ export async function POST(req: Request) {
                 })
                 
                 // Also update subscription status/period in DB
-                await supabase.from("subscriptions").upsert({
+                const { error: subError } = await supabase.from("subscriptions").upsert({
                     user_id: profile.id,
                     stripe_customer_id: customerId,
                     stripe_subscription_id: subscriptionId,
                     status: subscription.status,
                     current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
                 }, { onConflict: 'user_id' })
+
+                if (subError) {
+                    console.error("Error updating subscription:", subError)
+                }
 
                 console.log(`Added ${newCredits} credits to user ${profile.id} for renewal of ${plan}`)
             } else {
