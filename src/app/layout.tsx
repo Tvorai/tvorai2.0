@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Tomorrow } from "next/font/google"
+import Header from "@/components/Header"
 
 const tomorrow = Tomorrow({ 
   subsets: ["latin"], 
@@ -17,7 +18,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           body { margin: 0; padding: 0; background: #0A0A0A; min-height: 100vh; }
         `}</style>
       </head>
-      <body style={{ fontFamily: "inherit", margin: 0, padding: 0, background: "#0A0A0A", minHeight: "100vh" }}>{children}</body>
+      <body style={{ fontFamily: "inherit", margin: 0, padding: 0, background: "#0A0A0A", minHeight: "100vh" }}>
+        <Header />
+        {children}
+      </body>
     </html>
   )
 }

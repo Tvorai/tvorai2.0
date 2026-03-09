@@ -60,9 +60,6 @@ export default function HistoriePage() {
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Historie</h1>
-          <a href="/" style={{ color: primary, textDecoration: 'none', fontWeight: 700 }}>
-            Zpět
-          </a>
         </div>
         {loading ? (
           <div>Načítání…</div>
