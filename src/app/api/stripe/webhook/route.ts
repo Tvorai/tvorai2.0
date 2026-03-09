@@ -34,56 +34,92 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Handle initial subscription setup
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session
 
       const userId = session.metadata?.user_id
       const plan = session.metadata?.plan
-      const credits = session.metadata?.credits
+      const creditsStr = session.metadata?.credits
       
       const customerId = session.customer as string
       const subscriptionId = session.subscription as string
 
-      if (userId) {
-        // Update profile with new plan and customer ID
-        // Note: Credits will be added via invoice.paid event usually, 
-        // but for the first payment, checkout.session.completed also fires.
-        // However, invoice.paid is safer for recurring renewals.
-        // Let's rely on invoice.paid for credits to avoid double counting, 
-        // OR check if this is the first payment. 
-        // A simpler approach for now is to set the plan here, 
-        // and let invoice.paid handle the credits allocation.
+      console.log(`Processing checkout.session.completed for user ${userId}, plan ${plan}`)
+
+      if (userId && plan && creditsStr) {
+        const credits = parseInt(creditsStr, 10)
         
+        if (isNaN(credits)) {
+            console.error("Invalid credits in metadata:", creditsStr)
+            return new NextResponse("Invalid credits metadata", { status: 400 })
+        }
+
+        // 1. Update profile with new plan, customer ID, and ADD credits
+        // We add credits here for the initial purchase
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("credits")
+          .eq("id", userId)
+          .single()
+          
+        if (profileError) {
+            console.error("Error fetching profile:", profileError)
+        }
+
+        const currentCredits = profile?.credits || 0
+        const newBalance = currentCredits + credits
+
         await supabase
           .from("profiles")
           .update({
             stripe_customer_id: customerId,
-            plan: plan || "basic", // Fallback only if metadata missing
+            plan: plan,
+            credits: newBalance,
           })
           .eq("id", userId)
 
+        // 2. Insert subscription record
         await supabase.from("subscriptions").insert({
           user_id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          // We can try to get the price ID from the session line items if needed,
-          // or just store what we have. 
-          // Ideally we should store the actual price ID from the session.
-          // For now, let's leave stripe_price_id empty or try to get it if possible,
-          // but the previous code used a hardcoded env var which was wrong for multi-plan.
-          // Let's try to set status at least.
           status: "active",
-          current_period_end: null,
+          plan: plan,
+          current_period_end: null, // Can be updated via invoice.payment_succeeded or retrieved
         })
+
+        // 3. Log transaction
+        await supabase.from("credit_transactions").insert({
+            user_id: userId,
+            type: "subscription_purchase",
+            amount: credits,
+            note: `${plan} subscription purchase`,
+            balance_after: newBalance,
+        })
+        
+        console.log(`Successfully provisioned subscription for user ${userId}: ${plan}, +${credits} credits`)
+      } else {
+          console.error("Missing metadata in checkout session:", session.metadata)
       }
     }
 
+    // Handle recurring payments (renewals)
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as Stripe.Invoice
       const customerId = invoice.customer as string
       // Invoice.subscription can be string or Subscription object or null
-      // Use 'as any' to bypass strict typing if the type definition is outdated or strict
       const subscriptionId = (invoice as any).subscription as string | null
+      const billingReason = invoice.billing_reason
+
+      console.log(`Processing invoice.paid for customer ${customerId}. Reason: ${billingReason}`)
+
+      // Skip if this is the initial subscription creation (handled by checkout.session.completed)
+      // to avoid double crediting.
+      if (billingReason === 'subscription_create') {
+          console.log("Skipping invoice.paid for subscription_create (handled by checkout session)")
+          return new NextResponse("Skipped subscription_create", { status: 200 })
+      }
 
       // Find user by stripe_customer_id
       const { data: profile } = await supabase
@@ -94,6 +130,7 @@ export async function POST(req: Request) {
 
       if (profile && subscriptionId) {
         // Fetch subscription to get metadata (plan & credits)
+        // Metadata is on the Subscription object, not necessarily the Invoice object
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         
         const plan = subscription.metadata?.plan
@@ -103,11 +140,13 @@ export async function POST(req: Request) {
             const newCredits = parseInt(creditsStr, 10)
             
             if (!isNaN(newCredits)) {
+                const newBalance = (profile.credits || 0) + newCredits
+
                 await supabase
                   .from("profiles")
                   .update({
-                    credits: (profile.credits || 0) + newCredits,
-                    plan: plan,
+                    credits: newBalance,
+                    plan: plan, // Update plan in case it changed (e.g. upgrade handled via portal?)
                   })
                   .eq("id", profile.id)
         
@@ -116,16 +155,15 @@ export async function POST(req: Request) {
                   type: "subscription_renewal",
                   amount: newCredits,
                   note: `${plan} subscription renewal`,
-                  balance_after: (profile.credits || 0) + newCredits,
+                  balance_after: newBalance,
                 })
                 
-                console.log(`Added ${newCredits} credits to user ${profile.id} for plan ${plan}`)
+                console.log(`Added ${newCredits} credits to user ${profile.id} for renewal of ${plan}`)
             } else {
-                console.error("Invalid credits value in metadata:", creditsStr)
+                console.error("Invalid credits value in subscription metadata:", creditsStr)
             }
         } else {
             console.error("Missing plan or credits in subscription metadata", { subscriptionId })
-            // Fallback logic could go here if needed, but we want to avoid hardcoding "basic"
         }
       } else {
           console.error("Profile not found for customer:", customerId)
@@ -143,15 +181,18 @@ export async function POST(req: Request) {
         .single()
       
       if (profile) {
+          // Ideally we should revert to 'free' or null
           await supabase
             .from("profiles")
-            .update({ plan: "free" }) // or whatever the default/expired state is
+            .update({ plan: "free" }) 
             .eq("id", profile.id)
             
           await supabase
             .from("subscriptions")
             .update({ status: "canceled" })
             .eq("stripe_subscription_id", subscription.id)
+            
+          console.log(`Subscription deleted for user ${profile.id}`)
       }
     }
 

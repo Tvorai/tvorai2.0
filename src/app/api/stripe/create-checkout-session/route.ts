@@ -7,7 +7,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 })
 
 // Configuration for all plans
-// Each plan maps to a Stripe Price ID (from env) and a credit amount
 const PLAN_CONFIG: Record<string, { priceId: string | undefined; credits: number }> = {
   starter_monthly: {
     priceId: process.env.STRIPE_PRICE_STARTER_MONTHLY,
@@ -70,38 +69,28 @@ export async function POST(req: Request) {
 
     // 2. Parse request body to get the plan
     const body = await req.json().catch(() => ({}))
-    const planKey = body.plan || "starter_monthly" // Default to starter_monthly if not provided
+    const planKey = body.plan
+
+    if (!planKey || !PLAN_CONFIG[planKey]) {
+        console.error(`Invalid plan requested: ${planKey}`)
+        return NextResponse.json(
+            { error: "Invalid plan" },
+            { status: 400 }
+        )
+    }
     
     // 3. Get Price ID and Credit amount from configuration
-    // Fallback to STRIPE_BASIC_PRICE_ID only if the plan key doesn't exist in our config, 
-    // but ideally we should error out if the plan is invalid.
-    // For backward compatibility, if planKey isn't in config, we try the old env var, 
-    // but we default credits to 100 (old behavior) or handle it as error.
-    
     const selectedPlan = PLAN_CONFIG[planKey]
-    
-    // If exact plan match found, use it. 
-    // Otherwise check if it's a legacy case or error.
-    let priceId = selectedPlan?.priceId
-    let credits = selectedPlan?.credits
-
-    // Fallback logic (optional, but good for safety if env vars are missing)
-    if (!priceId) {
-      // Try legacy basic price if specific plan price is missing
-      priceId = process.env.STRIPE_BASIC_PRICE_ID
-      // If we fall back to basic price, assume basic credits? 
-      // Or safer to error out?
-      // Let's assume 100 credits for fallback to maintain some functionality if envs are missing
-      if (!credits) credits = 100
-    }
+    const priceId = selectedPlan.priceId
+    const credits = selectedPlan.credits
 
     console.log(`Creating checkout session for user ${userId}, plan: ${planKey}, priceId: ${priceId}, credits: ${credits}`)
 
     if (!priceId) {
-      console.error(`Price ID not found for plan: ${planKey}`)
+      console.error(`Price ID not configured for plan: ${planKey}`)
       return NextResponse.json(
-        { error: "Price ID not found for plan: " + planKey },
-        { status: 400 }
+        { error: "Configuration error: Price ID missing for plan " + planKey },
+        { status: 500 }
       )
     }
 
