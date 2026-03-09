@@ -56,7 +56,6 @@ export async function POST(req: Request) {
         }
 
         // 1. Update profile with new plan, customer ID, and ADD credits
-        // We add credits here for the initial purchase
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("credits")
@@ -70,7 +69,7 @@ export async function POST(req: Request) {
         const currentCredits = profile?.credits || 0
         const newBalance = currentCredits + credits
 
-        await supabase
+        const { error: updateProfileError } = await supabase
           .from("profiles")
           .update({
             stripe_customer_id: customerId,
@@ -78,24 +77,45 @@ export async function POST(req: Request) {
             credits: newBalance,
           })
           .eq("id", userId)
+        
+        if (updateProfileError) {
+          console.error("Error updating profile:", updateProfileError)
+          // Don't return, try to proceed to create subscription if possible
+        }
 
         // 2. Insert or Update subscription record
-        await supabase.from("subscriptions").upsert({
-          user_id: userId,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          status: "active",
-          current_period_end: null, // Can be updated via invoice.payment_succeeded or retrieved
-        }, { onConflict: 'user_id' })
+        // Ensure customerId and subscriptionId are present (they should be for subscription mode)
+        if (!customerId || !subscriptionId) {
+             console.error("Missing customerId or subscriptionId in session", { customerId, subscriptionId })
+        } else {
+            const { error: subError } = await supabase.from("subscriptions").upsert({
+              user_id: userId,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              status: "active",
+              current_period_end: null, // Can be updated via invoice.payment_succeeded or retrieved
+            }, { onConflict: 'user_id' })
+            
+            if (subError) {
+                console.error("Error creating/updating subscription:", subError)
+                // Log but don't fail the webhook completely so we don't retry endlessly if it's a data issue?
+                // Actually, if we fail here, we WANT retry.
+                throw new Error(`Failed to insert subscription: ${subError.message}`)
+            }
+        }
 
         // 3. Log transaction
-        await supabase.from("credit_transactions").insert({
+        const { error: transError } = await supabase.from("credit_transactions").insert({
             user_id: userId,
             type: "subscription_purchase",
             amount: credits,
             note: `${plan} subscription purchase`,
             balance_after: newBalance,
         })
+        
+        if (transError) {
+             console.error("Error logging credit transaction:", transError)
+        }
         
         console.log(`Successfully provisioned subscription for user ${userId}: ${plan}, +${credits} credits`)
       } else {
@@ -129,7 +149,6 @@ export async function POST(req: Request) {
 
       if (profile && subscriptionId) {
         // Fetch subscription to get metadata (plan & credits)
-        // Metadata is on the Subscription object, not necessarily the Invoice object
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         
         const plan = subscription.metadata?.plan
@@ -145,7 +164,7 @@ export async function POST(req: Request) {
                   .from("profiles")
                   .update({
                     credits: newBalance,
-                    plan: plan, // Update plan in case it changed (e.g. upgrade handled via portal?)
+                    plan: plan, 
                   })
                   .eq("id", profile.id)
         
@@ -157,6 +176,15 @@ export async function POST(req: Request) {
                   balance_after: newBalance,
                 })
                 
+                // Also update subscription status/period in DB
+                await supabase.from("subscriptions").upsert({
+                    user_id: profile.id,
+                    stripe_customer_id: customerId,
+                    stripe_subscription_id: subscriptionId,
+                    status: subscription.status,
+                    current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+                }, { onConflict: 'user_id' })
+
                 console.log(`Added ${newCredits} credits to user ${profile.id} for renewal of ${plan}`)
             } else {
                 console.error("Invalid credits value in subscription metadata:", creditsStr)
