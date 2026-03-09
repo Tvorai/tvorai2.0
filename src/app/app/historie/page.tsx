@@ -61,7 +61,7 @@ export default function HistoriePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Historie</h1>
           <a href="/app" style={{ color: primary, textDecoration: 'none', fontWeight: 700 }}>
-            Zpět do aplikace
+            Zpět
           </a>
         </div>
         {loading ? (

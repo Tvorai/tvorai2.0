@@ -280,7 +280,7 @@ export default function AppPage() {
               <button
                 onClick={() => {
                   setMenuOpen(false)
-                  router.push("/app/account")
+                  router.push("/app/ucet")
                 }}
                 style={{
                   width: "100%",

@@ -22,6 +22,10 @@ export default function AccountPage() {
   const [info, setInfo] = useState("")
   const [error, setError] = useState("")
 
+  const [profile, setProfile] = useState<any>(null)
+  const [subscription, setSubscription] = useState<any>(null)
+  const [loadingSub, setLoadingSub] = useState(true)
+
   useEffect(() => {
     let canceled = false
     async function init() {
@@ -35,6 +39,27 @@ export default function AccountPage() {
         setEmail(user.email ?? "")
         const fullName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || ""
         setName(fullName)
+
+        // Fetch profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        if (!canceled) setProfile(profileData)
+
+        // Fetch subscription
+        const { data: subData } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (!canceled) {
+          setSubscription(subData)
+          setLoadingSub(false)
+        }
       }
     }
     init()
@@ -101,7 +126,7 @@ export default function AccountPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Účet</h1>
           <a href="/app" style={{ color: primary, textDecoration: "none", fontWeight: 700 }}>
-            Zpět do aplikace
+            Zpět
           </a>
         </div>
 
@@ -184,6 +209,134 @@ export default function AccountPage() {
               {savingName ? "Ukládám…" : "Uložit jméno"}
             </button>
           </div>
+        </section>
+
+        <section
+          style={{
+            background: surface,
+            borderRadius: 16,
+            padding: 16,
+            border: "1px solid #2A2A2A",
+            marginBottom: 16
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>Predplatné</div>
+          
+          {loadingSub ? (
+            <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
+          ) : !subscription ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ color: "#9CA3AF" }}>Momentálne nemáte aktívne predplatné.</div>
+              <button
+                onClick={() => router.push("/test-checkout")}
+                style={{
+                  justifySelf: "start",
+                  background: primary,
+                  color: text,
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                Koupit předplatné
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Typ plánu</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {profile?.plan === 'basic' ? 'Basic – 100 kreditov mesačne' : (profile?.plan || 'Free')}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Stav</div>
+                  <div>
+                    <span style={{
+                      display: "inline-block",
+                      padding: "4px 8px",
+                      borderRadius: 999,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      background: subscription.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : subscription.status === 'canceled' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                      color: subscription.status === 'active' ? '#34D399' : subscription.status === 'canceled' ? '#F87171' : '#FBBF24',
+                    }}>
+                      {subscription.status === 'active' ? 'Aktívne' : subscription.status === 'canceled' ? 'Zrušené' : subscription.status}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Kredity</div>
+                  <div style={{ fontWeight: 600 }}>{profile?.credits ?? 0}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Zakoupeno dne</div>
+                  <div style={{ fontWeight: 600 }}>{new Date(subscription.created_at).toLocaleDateString('cs-CZ')}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Platné do</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {subscription.current_period_end 
+                      ? new Date(subscription.current_period_end * 1000).toLocaleDateString('cs-CZ')
+                      : '—'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Datum registrace</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('cs-CZ') : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4 }}>
+                <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
+                  CID: {profile?.stripe_customer_id || '—'}
+                </div>
+                <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
+                  SUB: {subscription.stripe_subscription_id || '—'}
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    const res = await fetch("/api/stripe/create-portal-session", {
+                      method: "POST",
+                      headers: {
+                        Authorization: session?.access_token || "",
+                      },
+                    })
+                    const data = await res.json()
+                    if (data.url) {
+                      window.location.href = data.url
+                    } else {
+                      setError("Chyba při načítání správy předplatného")
+                    }
+                  } catch (e) {
+                    setError("Chyba při komunikaci se serverem")
+                  }
+                }}
+                style={{
+                  justifySelf: "start",
+                  background: "#374151",
+                  color: text,
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  marginTop: 12
+                }}
+              >
+                Spravovat předplatné
+              </button>
+            </div>
+          )}
         </section>
 
         <section
