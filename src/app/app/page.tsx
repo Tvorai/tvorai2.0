@@ -39,12 +39,12 @@ export default function AppPage() {
         return
       }
       const { data, error } = await supabase
-        .from("credit_balances")
-        .select("credits_total")
-        .eq("user_id", userId)
+        .from("profiles")
+        .select("credits")
+        .eq("id", userId)
         .maybeSingle()
       if (!canceled) {
-        if (!error && data) setCredits(Number(data.credits_total) || 0)
+        if (!error && data) setCredits(Number(data.credits) || 0)
         else setCredits(0)
         setLoading(false)
       }
@@ -210,7 +210,7 @@ export default function AppPage() {
           }}
           title="Zůstatek kreditů"
         >
-          <span style={{ fontWeight: 800, fontSize: 18 }}>{credits ?? "—"}</span>
+          <span style={{ fontWeight: 800, fontSize: 18 }}>{credits ?? 0}</span>
           <img
             src="/coin.png"
             alt="Kredity"
