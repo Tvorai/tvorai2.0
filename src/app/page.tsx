@@ -257,7 +257,8 @@ export default function AppPage() {
                 borderRadius: 12,
                 border: `1px solid ${primary}`,
                 minWidth: 180,
-                padding: 8
+                padding: 8,
+                zIndex: 100
               }}
             >
               <button
@@ -295,6 +296,23 @@ export default function AppPage() {
                 Účet
               </button>
               <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  router.push("/cenik")
+                }}
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  color: text,
+                  border: "none",
+                  padding: "10px 12px",
+                  textAlign: "left",
+                  cursor: "pointer"
+                }}
+              >
+                Ceník
+              </button>
+              <button
                 onClick={signOut}
                 style={{
                   width: "100%",
@@ -308,6 +326,25 @@ export default function AppPage() {
               >
                 Odhlásit
               </button>
+              <a
+                href="https://www.tvorai.cz/podpora"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  background: "transparent",
+                  color: text,
+                  border: "none",
+                  padding: "10px 12px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  textDecoration: "none"
+                }}
+              >
+                Podpora
+              </a>
             </div>
           ) : null}
         </div>
