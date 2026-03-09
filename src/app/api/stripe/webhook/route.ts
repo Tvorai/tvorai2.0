@@ -85,7 +85,6 @@ export async function POST(req: Request) {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           status: "active",
-          plan: plan,
           current_period_end: null, // Can be updated via invoice.payment_succeeded or retrieved
         })
 
