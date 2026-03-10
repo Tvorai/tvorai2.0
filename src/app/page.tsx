@@ -151,7 +151,96 @@ export default function AppPage() {
       }
       return
     }
-    setActionError("Tato akce ještě není připojená")
+
+    if (tab === "i2v") {
+      if (!imageInput) return
+      try {
+        setLoading(true)
+        const fd = new FormData()
+        fd.append("image", imageInput)
+        fd.append("prompt", prompt)
+        fd.append("duration", duration)
+        if (userId) fd.append("userId", userId)
+
+        const res = await fetch("/api/novita/i2v", {
+          method: "POST",
+          body: fd
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setLoading(false)
+          setActionError(data?.error || "Chyba generování videa")
+          return
+        }
+        setCredits((c) => (c !== null ? c - cost : null))
+        window.dispatchEvent(new Event("credits-updated"))
+        pollTask(data.taskId)
+      } catch (e: any) {
+        setLoading(false)
+        setActionError(e?.message || "Chyba sítě")
+      }
+      return
+    }
+
+    if (tab === "t2v") {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/novita/t2v", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, duration, userId })
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setLoading(false)
+          setActionError(data?.error || "Chyba generování videa")
+          return
+        }
+        setCredits((c) => (c !== null ? c - cost : null))
+        window.dispatchEvent(new Event("credits-updated"))
+        pollTask(data.taskId)
+      } catch (e: any) {
+        setLoading(false)
+        setActionError(e?.message || "Chyba sítě")
+      }
+      return
+    }
+  }
+
+  async function pollTask(taskId: string) {
+    try {
+      const res = await fetch(`/api/novita/task-result?taskId=${taskId}`)
+      const data = await res.json()
+      
+      if (!res.ok) {
+        setLoading(false)
+        setActionError(data?.error || "Chyba při kontrole stavu")
+        return
+      }
+
+      const status = data.task?.status
+      if (status === "TASK_STATUS_SUCCEED") {
+        setLoading(false)
+        const videoUrl = data.videos?.[0]?.video_url
+        if (videoUrl) {
+          setPreviewUrl(videoUrl)
+        } else {
+          setActionError("Video URL nenalezena")
+        }
+      } else if (status === "TASK_STATUS_FAILED") {
+        setLoading(false)
+        setActionError(data.task?.reason || "Generování selhalo")
+      } else {
+        // Continue polling
+        setTimeout(() => pollTask(taskId), 3000)
+      }
+    } catch (e: any) {
+       // Network error during poll, retry once or twice? Or just stop.
+       // For now, retry after delay, but if persistent error, maybe stop?
+       // We'll just retry.
+       console.error("Poll error", e)
+       setTimeout(() => pollTask(taskId), 3000)
+    }
   }
 
   async function handleDownload() {
@@ -498,18 +587,34 @@ export default function AppPage() {
           >
             {previewUrl ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={previewUrl}
-                  alt="Náhled"
-                  style={{ 
-                    width: "100%", 
-                    height: "100%", 
-                    objectFit: "contain",
-                    borderRadius: 16,
-                    display: "block"
-                  }}
-                />
+                {tab === "i2v" || tab === "t2v" || previewUrl.endsWith(".mp4") ? (
+                  <video
+                    src={previewUrl}
+                    controls
+                    autoPlay
+                    loop
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      borderRadius: 16,
+                      display: "block"
+                    }}
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={previewUrl}
+                    alt="Náhled"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      borderRadius: 16,
+                      display: "block"
+                    }}
+                  />
+                )}
                 {!loading && (
                   <button
                     onClick={handleDownload}

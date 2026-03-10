@@ -233,26 +233,7 @@ export default function AccountPage() {
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
-              {!subscription && !profile?.stripe_customer_id ? (
-                <>
-                  <div style={{ color: "#9CA3AF" }}>No active subscription</div>
-                  <button
-                    onClick={() => router.push("/cenik")}
-                    style={{
-                      justifySelf: "start",
-                      background: primary,
-                      color: text,
-                      border: "none",
-                      borderRadius: 12,
-                      padding: "10px 14px",
-                      fontWeight: 700,
-                      cursor: "pointer"
-                    }}
-                  >
-                    Koupit předplatné
-                  </button>
-                </>
-              ) : subscription ? (
+              {subscription ? (
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
@@ -311,42 +292,45 @@ export default function AccountPage() {
                 </>
               ) : null}
 
-              {profile?.stripe_customer_id && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const { data: { session } } = await supabase.auth.getSession()
-                      if (!session?.user) return
-                      
-                      const res = await fetch("/api/stripe/portal", {
-                        method: "POST",
-                        body: JSON.stringify({ userId: session.user.id }),
-                      })
-                      const data = await res.json()
-                      if (data.url) {
-                        window.location.href = data.url
-                      } else {
-                        setError("Chyba při načítání správy předplatného")
-                      }
-                    } catch (e) {
-                      setError("Chyba při komunikaci se serverem")
+              <button
+                onClick={async () => {
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (!session?.user) return
+                    
+                    if (!profile?.stripe_customer_id) {
+                      setError("Chyba: Zákaznický účet zatím nebyl vytvořen. Zkuste to prosím za chvíli.")
+                      return
                     }
-                  }}
-                  style={{
-                    justifySelf: "start",
-                    background: primary,
-                    color: text,
-                    border: "none",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    marginTop: 12
-                  }}
-                >
-                  Spravovat předplatné
-                </button>
-              )}
+
+                    const res = await fetch("/api/stripe/portal", {
+                      method: "POST",
+                      body: JSON.stringify({ userId: session.user.id }),
+                    })
+                    const data = await res.json()
+                    if (data.url) {
+                      window.location.href = data.url
+                    } else {
+                      setError("Chyba při načítání správy předplatného")
+                    }
+                  } catch (e) {
+                    setError("Chyba při komunikaci se serverem")
+                  }
+                }}
+                style={{
+                  justifySelf: "start",
+                  background: primary,
+                  color: text,
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  marginTop: 12
+                }}
+              >
+                Spravovat předplatné
+              </button>
             </div>
           )}
         </section>
