@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createJob } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -90,7 +91,12 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    return NextResponse.json({ taskId: data.task_id })
+    const taskId = data.task_id
+    
+    // 4. Create Job Record
+    await createJob(supabase, userId, "video", "wan-2.2-t2v", { prompt, duration }, cost, taskId)
+
+    return NextResponse.json({ taskId })
   } catch (e: any) {
     // Refund
     await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)

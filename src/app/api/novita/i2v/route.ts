@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createJob } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -47,7 +48,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
   }
 
-  // 2. Upload image to Supabase Storage to get a URL
+  // 2. Upload image to Supabase Storage to get a URL (for Novita input)
+  // TODO: We could also upload this to S3 as an input asset, but for now Supabase is fine for input.
   const fileExt = image.name.split('.').pop()
   const fileName = `i2v/${userId}/${Date.now()}.${fileExt}`
   const { data: uploadData, error: uploadError } = await supabase
@@ -100,7 +102,6 @@ export async function POST(req: NextRequest) {
 
   try {
     // Novita Wan 2.1 I2V
-    // https://api.novita.ai/v3/async/wan-i2v
     const res = await fetch("https://api.novita.ai/v3/async/wan-i2v", {
       method: "POST",
       headers: {
@@ -114,7 +115,6 @@ export async function POST(req: NextRequest) {
         height: 480, // Default resolution
         steps: 30, // Default
         seed: -1
-        // Note: Wan 2.1 defaults to 5s. Duration param not explicitly supported in the simple payload.
       })
     })
 
@@ -126,7 +126,13 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    return NextResponse.json({ taskId: data.task_id })
+    const taskId = data.task_id
+
+    // 5. Create Job Record
+    // We store taskId as provider_job_id so we can look it up later in task-result
+    await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration }, cost, taskId)
+
+    return NextResponse.json({ taskId })
   } catch (e: any) {
     // Refund
     await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)

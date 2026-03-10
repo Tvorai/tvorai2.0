@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createJob, completeJobWithAsset, downloadAndUploadToS3, getSignedUrlForAsset } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to update credits" }, { status: 500 })
   }
 
-  // 3. Log transaction (async, don't await blocking)
+  // 3. Log transaction (async)
   supabase.from("credit_transactions").insert({
     user_id: userId,
     type: "image_generation",
@@ -66,6 +67,15 @@ export async function POST(req: NextRequest) {
   }).then(({ error }) => {
     if (error) console.error("Error logging transaction:", error)
   })
+
+  // 4. Create Job Record
+  let job: any
+  try {
+    job = await createJob(supabase, userId, "image", "seedream", { prompt, size }, COST)
+  } catch (e) {
+    console.error("Failed to create job record", e)
+    // Continue anyway, but history won't work well
+  }
 
   try {
     const res = await fetch("https://api.novita.ai/v3/seedream-4.0", {
@@ -90,6 +100,9 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) }) // Restore original
         .eq("id", userId)
       
+      if (job) {
+          await supabase.from("generation_jobs").update({ status: "failed", error: text }).eq("id", job.id)
+      }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
@@ -102,16 +115,41 @@ export async function POST(req: NextRequest) {
         .from("profiles")
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
+        
+      if (job) {
+          await supabase.from("generation_jobs").update({ status: "failed", error: "No image URL returned" }).eq("id", job.id)
+      }
       return NextResponse.json({ error: "No image URL returned" }, { status: 502 })
     }
 
-    return NextResponse.json({ url })
+    // 5. Upload to S3 and save asset
+    let finalUrl = url
+    if (job) {
+        try {
+            const s3Key = `t2i/${userId}/${job.id}.png`
+            await downloadAndUploadToS3(url, s3Key, "image/png")
+            await completeJobWithAsset(supabase, job.id, s3Key, "image/png")
+            // Return signed URL or the original?
+            // Returning signed URL ensures we verify S3 works, but original is faster.
+            // Let's return signed URL to be consistent with history view.
+            finalUrl = await getSignedUrlForAsset(s3Key)
+        } catch (e) {
+            console.error("Failed to upload to S3", e)
+            // If S3 fails, we still return the Novita URL so user gets their image
+        }
+    }
+
+    return NextResponse.json({ url: finalUrl })
   } catch (e: any) {
     // Refund on exception
     await supabase
         .from("profiles")
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
+        
+    if (job) {
+        await supabase.from("generation_jobs").update({ status: "failed", error: e?.message }).eq("id", job.id)
+    }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }
 }

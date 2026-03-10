@@ -4,11 +4,22 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
+type Asset = {
+  id: string
+  kind: 'input' | 'output'
+  storage_path: string
+  mime: string
+  url?: string
+}
+
 type Item = {
   id: string
   created_at: string
   type: string
   status: string
+  provider: string
+  cost: number
+  assets: Asset[]
 }
 
 export default function HistoriePage() {
@@ -26,20 +37,28 @@ export default function HistoriePage() {
     let canceled = false
     async function load() {
       const { data } = await supabase.auth.getSession()
-      const user = data.session?.user
-      if (!user) {
+      const token = data.session?.access_token
+      if (!token) {
         router.push('/login')
         return
       }
-      const { data: rows } = await supabase
-        .from('generation_jobs')
-        .select('id, created_at, type, status')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-      if (!canceled) {
-        setItems((rows as Item[]) || [])
-        setLoading(false)
+
+      try {
+        const res = await fetch('/api/history', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (!res.ok) throw new Error('Failed to load history')
+        
+        const json = await res.json()
+        if (!canceled) {
+          setItems(json.jobs || [])
+          setLoading(false)
+        }
+      } catch (e) {
+        console.error(e)
+        if (!canceled) setLoading(false)
       }
     }
     load()
@@ -66,29 +85,94 @@ export default function HistoriePage() {
         ) : items.length === 0 ? (
           <div style={{ opacity: 0.8 }}>Zatím zde nic není.</div>
         ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {items.map((it) => (
-              <div
-                key={it.id}
-                style={{
-                  background: surface,
-                  borderRadius: 12,
-                  border: '1px solid #2A2A2A',
-                  padding: 12,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                  <div style={{ fontWeight: 700 }}>{it.type}</div>
-                  <div style={{ opacity: 0.8, fontSize: 13 }}>{new Date(it.created_at).toLocaleString()}</div>
+          <div style={{ display: 'grid', gap: 16 }}>
+            {items.map((it) => {
+              const output = it.assets?.find(a => a.kind === 'output')
+              return (
+                <div
+                  key={it.id}
+                  style={{
+                    background: surface,
+                    borderRadius: 16,
+                    border: '1px solid #2A2A2A',
+                    padding: 20,
+                    display: 'grid',
+                    gap: 16,
+                    gridTemplateColumns: output ? '200px 1fr' : '1fr'
+                  }}
+                >
+                  {output && output.url ? (
+                    <div style={{ 
+                      width: 200, 
+                      height: 200, 
+                      borderRadius: 12, 
+                      overflow: 'hidden', 
+                      background: '#000',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {output.mime.startsWith('video') ? (
+                         <video 
+                           src={output.url} 
+                           controls 
+                           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                         />
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img 
+                          src={output.url} 
+                          alt="Výsledek" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      )}
+                    </div>
+                  ) : output ? (
+                    <div style={{ width: 200, height: 200, borderRadius: 12, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                      Bez náhledu
+                    </div>
+                  ) : null}
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
+                                {it.type === 'image' ? 'Obrázek z textu' : 
+                                 it.type === 'video' ? 'Video' : 
+                                 it.type === 'faceswap' ? 'Výměna tváří' : it.type}
+                            </div>
+                            <div style={{ fontSize: 13, opacity: 0.6, fontFamily: 'monospace' }}>
+                                {it.id}
+                            </div>
+                        </div>
+                        <div style={{ 
+                            padding: '4px 10px', 
+                            borderRadius: 999, 
+                            fontSize: 12, 
+                            fontWeight: 700,
+                            background: it.status === 'succeeded' ? 'rgba(16, 185, 129, 0.2)' : it.status === 'failed' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+                            color: it.status === 'succeeded' ? '#34D399' : it.status === 'failed' ? '#F87171' : '#FBBF24',
+                        }}>
+                            {it.status === 'succeeded' ? 'Hotovo' : 
+                             it.status === 'failed' ? 'Chyba' : 
+                             it.status === 'running' ? 'Generuje se' : 'Ve frontě'}
+                        </div>
+                    </div>
+                    
+                    <div style={{ fontSize: 14, color: '#9CA3AF', marginBottom: 8 }}>
+                        {new Date(it.created_at).toLocaleString('cs-CZ')}
+                    </div>
+                    
+                    {it.cost > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600 }}>
+                            <span>{it.cost}</span>
+                            <img src="/coin.png" alt="Kredity" style={{ width: 14, height: 14 }} />
+                        </div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ fontWeight: 700, color: it.status === 'succeeded' ? '#10B981' : it.status === 'failed' ? '#EF4444' : '#EAB308' }}>
-                  {it.status}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

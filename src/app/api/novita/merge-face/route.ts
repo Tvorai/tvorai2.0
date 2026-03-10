@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createJob, completeJobWithAsset, uploadToS3, getSignedUrlForAsset } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -76,15 +77,19 @@ export async function POST(req: NextRequest) {
     if (error) console.error("Error logging transaction:", error)
   })
 
+  // 4. Create Job Record
+  let job: any
+  try {
+    // We don't store the input images in the DB json for now, too large
+    job = await createJob(supabase, userId, "faceswap", "merge-face", {}, COST)
+  } catch (e) {
+    console.error("Failed to create job record", e)
+  }
+
   try {
     const faceData = await toDataUrl(face)
     const targetData = await toDataUrl(target)
     
-    // Novita merge-face endpoint: https://api.novita.ai/v3/merge-face
-    // Docs say body should be JSON with "face_image_file" and "image_file" as base64 data urls?
-    // Or maybe just base64 strings?
-    // The previous code used data urls.
-
     const res = await fetch("https://api.novita.ai/v3/merge-face", {
       method: "POST",
       headers: {
@@ -92,9 +97,9 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        face_image_file: faceData, // "data:image/png;base64,..."
+        face_image_file: faceData,
         image_file: targetData,
-        merge_strategy: "fast" // optional?
+        merge_strategy: "fast"
       })
     })
 
@@ -105,6 +110,10 @@ export async function POST(req: NextRequest) {
         .from("profiles")
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
+      
+      if (job) {
+          await supabase.from("generation_jobs").update({ status: "failed", error: text }).eq("id", job.id)
+      }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
@@ -116,19 +125,41 @@ export async function POST(req: NextRequest) {
         .from("profiles")
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
+        
+      if (job) {
+          await supabase.from("generation_jobs").update({ status: "failed", error: "No image returned" }).eq("id", job.id)
+      }
       return NextResponse.json({ error: "No image returned" }, { status: 502 })
     }
 
     const mime = data.image_type ? `image/${data.image_type}` : "image/png"
     const url = `data:${mime};base64,${data.image_file}`
     
-    return NextResponse.json({ url })
+    // 5. Upload to S3
+    let finalUrl = url
+    if (job) {
+        try {
+            const buffer = Buffer.from(data.image_file, "base64")
+            const s3Key = `faceswap/${userId}/${job.id}.png` // Assume png or based on mime
+            await uploadToS3(buffer, s3Key, mime)
+            await completeJobWithAsset(supabase, job.id, s3Key, mime)
+            finalUrl = await getSignedUrlForAsset(s3Key)
+        } catch (e) {
+            console.error("Failed to upload to S3", e)
+        }
+    }
+
+    return NextResponse.json({ url: finalUrl })
   } catch (e: any) {
     // Refund
     await supabase
         .from("profiles")
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
+    
+    if (job) {
+        await supabase.from("generation_jobs").update({ status: "failed", error: e?.message }).eq("id", job.id)
+    }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }
 }
