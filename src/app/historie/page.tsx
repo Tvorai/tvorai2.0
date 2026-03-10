@@ -20,6 +20,7 @@ type Item = {
   provider: string
   cost: number
   assets: Asset[]
+  url?: string
 }
 
 export default function HistoriePage() {
@@ -87,7 +88,8 @@ export default function HistoriePage() {
         ) : (
           <div style={{ display: 'grid', gap: 16 }}>
             {items.map((it) => {
-              const output = it.assets?.find(a => a.kind === 'output')
+              // const output = it.assets?.find(a => a.kind === 'output')
+              const outputUrl = it.url
               return (
                 <div
                   key={it.id}
@@ -98,10 +100,10 @@ export default function HistoriePage() {
                     padding: 20,
                     display: 'grid',
                     gap: 16,
-                    gridTemplateColumns: output ? '200px 1fr' : '1fr'
+                    gridTemplateColumns: outputUrl ? '200px 1fr' : '1fr'
                   }}
                 >
-                  {output && output.url ? (
+                  {outputUrl ? (
                     <div style={{ 
                       width: 200, 
                       height: 200, 
@@ -112,26 +114,26 @@ export default function HistoriePage() {
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      {output.mime.startsWith('video') ? (
+                      {it.type === 'video' ? (
                          <video 
-                           src={output.url} 
+                           src={outputUrl} 
                            controls 
                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                          />
                       ) : (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img 
-                          src={output.url} 
+                          src={outputUrl} 
                           alt="Výsledek" 
                           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                       )}
                     </div>
-                  ) : output ? (
+                  ) : (
                     <div style={{ width: 200, height: 200, borderRadius: 12, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
                       Bez náhledu
                     </div>
-                  ) : null}
+                  )}
                   
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>

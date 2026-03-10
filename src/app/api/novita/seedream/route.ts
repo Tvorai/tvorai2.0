@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         .eq("id", userId)
       
       if (job) {
-          await supabase.from("generation_jobs").update({ status: "failed", error: text }).eq("id", job.id)
+          await supabase.from("generations").update({ status: "failed", error: text }).eq("id", job.id)
       }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         .eq("id", userId)
         
       if (job) {
-          await supabase.from("generation_jobs").update({ status: "failed", error: "No image URL returned" }).eq("id", job.id)
+          await supabase.from("generations").update({ status: "failed", error: "No image URL returned" }).eq("id", job.id)
       }
       return NextResponse.json({ error: "No image URL returned" }, { status: 502 })
     }
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
         .eq("id", userId)
         
     if (job) {
-        await supabase.from("generation_jobs").update({ status: "failed", error: e?.message }).eq("id", job.id)
+        await supabase.from("generations").update({ status: "failed", error: e?.message }).eq("id", job.id)
     }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }

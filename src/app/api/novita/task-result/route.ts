@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     // Look up the job in our DB
     const { data: job } = await supabase
-        .from("generation_jobs")
+        .from("generations")
         .select("id, user_id, status, cost")
         .eq("provider_job_id", taskId)
         .single()
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         } else if (status === "TASK_STATUS_FAILED" && job.status !== "failed") {
             console.log(`[TaskResult] Job ${job.id} failed. Reason: ${data.task?.reason}`)
             
-            await supabase.from("generation_jobs").update({ 
+            await supabase.from("generations").update({ 
                 status: "failed", 
                 error: data.task?.reason 
             }).eq("id", job.id)

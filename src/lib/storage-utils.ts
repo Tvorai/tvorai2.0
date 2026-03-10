@@ -51,20 +51,26 @@ export async function createJob(
   providerJobId?: string
 ) {
   const { data, error } = await supabase
-    .from("generation_jobs")
+    .from("generations")
     .insert({
       user_id: userId,
       type,
       status: providerJobId ? "running" : "succeeded", // async jobs start as running, sync as succeeded immediately (if we upload immediately)
       provider,
       provider_job_id: providerJobId,
-      input_json: inputJson,
+      prompt: inputJson.prompt, // Store prompt directly in generations table
+      width: inputJson.width,
+      height: inputJson.height,
+      duration: inputJson.duration,
       cost,
     })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error("Failed to insert generation record:", error)
+    throw error
+  }
   return data
 }
 
@@ -74,19 +80,19 @@ export async function completeJobWithAsset(
   s3Key: string,
   mime: string
 ) {
-  // 1. Create asset
-  const { error: assetError } = await supabase.from("generation_assets").insert({
-    job_id: jobId,
-    kind: "output",
-    storage_path: s3Key,
-    mime,
-  })
-  if (assetError) throw assetError
-
-  // 2. Update job status
+  // Update generation record with S3 key and status
   const { error: jobError } = await supabase
-    .from("generation_jobs")
-    .update({ status: "succeeded" })
+    .from("generations")
+    .update({ 
+      status: "succeeded",
+      s3_key: s3Key,
+      mime: mime,
+      // We can also store the public URL if needed, but we use signed URLs
+    })
     .eq("id", jobId)
-  if (jobError) throw jobError
+    
+  if (jobError) {
+    console.error(`Failed to update generation ${jobId}:`, jobError)
+    throw jobError
+  }
 }

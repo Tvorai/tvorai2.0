@@ -31,14 +31,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch jobs
+    // Fetch generations
     const { data: jobs, error: jobsError } = await supabase
-      .from("generation_jobs")
+      .from("generations")
       .select(`
-        id, created_at, type, status, provider, input_json, cost,
-        generation_assets (
-          id, kind, storage_path, mime
-        )
+        id, created_at, type, status, provider, prompt, cost, s3_key, mime
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -48,19 +45,15 @@ export async function GET(req: NextRequest) {
 
     // Sign URLs for assets
     const jobsWithSignedUrls = await Promise.all(jobs.map(async (job) => {
-      const assets = await Promise.all(job.generation_assets.map(async (asset: any) => {
-        if (asset.kind === "output" && asset.storage_path) {
-          try {
-            const url = await getSignedUrlForAsset(asset.storage_path)
-            return { ...asset, url }
-          } catch (e) {
-            console.error(`Failed to sign URL for ${asset.storage_path}`, e)
-            return asset
-          }
+      let url = null
+      if (job.s3_key) {
+        try {
+          url = await getSignedUrlForAsset(job.s3_key)
+        } catch (e) {
+          console.error(`Failed to sign URL for ${job.s3_key}`, e)
         }
-        return asset
-      }))
-      return { ...job, assets }
+      }
+      return { ...job, url }
     }))
 
     return NextResponse.json({ jobs: jobsWithSignedUrls })
