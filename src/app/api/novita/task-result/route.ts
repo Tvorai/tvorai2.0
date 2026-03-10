@@ -47,24 +47,34 @@ export async function GET(req: NextRequest) {
     if (job) {
         if (status === "TASK_STATUS_SUCCEED" && job.status !== "succeeded") {
             const videoUrl = data.videos?.[0]?.video_url
+            console.log(`[TaskResult] Job ${job.id} succeeded. Video URL: ${videoUrl}`)
+            
             if (videoUrl) {
                 try {
                     const s3Key = `video/${job.user_id}/${job.id}.mp4`
+                    console.log(`[TaskResult] Starting upload to S3: ${s3Key}`)
+                    
                     await downloadAndUploadToS3(videoUrl, s3Key, "video/mp4")
+                    console.log(`[TaskResult] Uploaded to S3 successfully`)
+                    
                     await completeJobWithAsset(supabase, job.id, s3Key, "video/mp4")
+                    console.log(`[TaskResult] Updated job status and assets in DB`)
                     
                     // Replace the video_url in the response with our signed URL
                     const signedUrl = await getSignedUrlForAsset(s3Key)
+                    console.log(`[TaskResult] Generated signed URL: ${signedUrl}`)
                     
                     // Modify data to return our signed URL to frontend
                     if (data.videos && data.videos[0]) {
                         data.videos[0].video_url = signedUrl
                     }
                 } catch (e) {
-                    console.error("Failed to upload video result to S3", e)
+                    console.error("[TaskResult] Failed to upload video result to S3", e)
                 }
             }
         } else if (status === "TASK_STATUS_FAILED" && job.status !== "failed") {
+            console.log(`[TaskResult] Job ${job.id} failed. Reason: ${data.task?.reason}`)
+            
             await supabase.from("generation_jobs").update({ 
                 status: "failed", 
                 error: data.task?.reason 
@@ -74,7 +84,8 @@ export async function GET(req: NextRequest) {
              if (job.cost) {
                  const { data: profile } = await supabase.from("profiles").select("credits").eq("id", job.user_id).single()
                  if (profile) {
-                     await supabase.from("profiles").update({ credits: (profile.credits || 0) + job.cost }).eq("id", job.user_id)
+                     const newCredits = (profile.credits || 0) + job.cost
+                     await supabase.from("profiles").update({ credits: newCredits }).eq("id", job.user_id)
                      
                      // Log refund
                      await supabase.from("credit_transactions").insert({
@@ -82,8 +93,9 @@ export async function GET(req: NextRequest) {
                          type: "refund",
                          amount: job.cost,
                          note: `Refund for failed job ${job.id}`,
-                         balance_after: (profile.credits || 0) + job.cost
+                         balance_after: newCredits
                      })
+                     console.log(`[TaskResult] Refunded ${job.cost} credits to user ${job.user_id}`)
                  }
              }
         }
@@ -91,6 +103,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(data)
   } catch (e: any) {
+    console.error("[TaskResult] Error:", e)
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }
 }
