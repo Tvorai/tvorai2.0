@@ -148,17 +148,34 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json()
-    const taskId = data.task_id
+    console.log("[NOVITA] raw response:", JSON.stringify(data, null, 2))
+    const taskId = data.task_id || data.job_id || data.data?.task_id
+
+    if (!taskId) {
+      console.error("[Novita I2V] No task_id in response")
+      // Refund
+      await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
+      if (job?.id) {
+          await failJob(supabase, job.id, "No task_id returned from Novita")
+      }
+      return NextResponse.json({ error: "No task_id returned from Novita" }, { status: 502 })
+    }
+
     console.log("[Novita I2V] API task created:", taskId)
 
-    // 5. Update Job Record with task_id
+    // 5. Update Job Record with task_id and status running
     if (job?.id) {
-        await supabase.from("generation_jobs").update({ 
+        const { error: updateError } = await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
             task_id: taskId,
             status: "running"
         }).eq("id", job.id)
-        console.log("[Novita I2V] Job updated with taskId:", taskId)
+        
+        if (updateError) {
+          console.error("[Novita I2V] Failed to update job with taskId:", updateError)
+        } else {
+          console.log("[Novita I2V] Job updated with taskId:", taskId, "status: running")
+        }
     }
 
     return NextResponse.json({ taskId })

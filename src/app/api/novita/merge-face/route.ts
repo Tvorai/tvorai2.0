@@ -129,10 +129,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
-    const data = (await res.json()) as { image_file?: string; image_type?: string }
+    const data = (await res.json()) as { image_file?: string; image_type?: string; task_id?: string; job_id?: string; data?: { task_id: string } }
+    console.log("[NOVITA] raw response:", JSON.stringify(data, null, 2))
     
-    if (!data?.image_file) {
-      console.error("[Novita MergeFace] No image file in response")
+    const taskId = data.task_id || data.job_id || data.data?.task_id
+
+    if (!data?.image_file && !taskId) {
+      console.error("[Novita MergeFace] No image file or task_id in response")
       // Refund
       await supabase
         .from("profiles")
@@ -140,18 +143,29 @@ export async function POST(req: NextRequest) {
         .eq("id", userId)
         
       if (job?.id) {
-          await failJob(supabase, job.id, "No image returned")
+          await failJob(supabase, job.id, "No output returned from Novita")
       }
-      return NextResponse.json({ error: "No image returned" }, { status: 502 })
+      return NextResponse.json({ error: "No output returned from Novita" }, { status: 502 })
     }
 
+    // 5. If it's async (has taskId), update status to running
+    if (taskId && job?.id) {
+        console.log("[Novita MergeFace] Async task detected, updating status to running. TaskID:", taskId)
+        await supabase.from("generation_jobs").update({ 
+            provider_job_id: taskId,
+            task_id: taskId,
+            status: "running"
+        }).eq("id", job.id)
+        return NextResponse.json({ taskId })
+    }
+
+    // 6. If it's sync (has image_file), upload to S3
     const mime = data.image_type ? `image/${data.image_type}` : "image/png"
     const url = `data:${mime};base64,${data.image_file}`
     console.log("[Novita MergeFace] API response received, image type:", mime)
     
-    // 5. Upload to S3
     let finalUrl = url
-    if (job?.id) {
+    if (data.image_file && job?.id) {
         try {
             const buffer = Buffer.from(data.image_file, "base64")
             const s3Key = `faceswap/${userId}/${job.id}.png`

@@ -120,12 +120,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
-    const data = (await res.json()) as { images?: string[] }
+    const data = (await res.json()) as { images?: string[]; task_id?: string; job_id?: string; data?: { task_id: string } }
+    console.log("[NOVITA] raw response:", JSON.stringify(data, null, 2))
+    
     const url = data?.images?.[0]
     console.log("[Novita] API response received, image URL:", url)
     
-    if (!url) {
-      console.error("[Novita] No image URL in response")
+    // Some Novita APIs might return a task_id even for image generation if it's async
+    const taskId = data.task_id || data.job_id || data.data?.task_id
+    
+    if (!url && !taskId) {
+      console.error("[Novita] No image URL or task_id in response")
       // Refund if no URL
       await supabase
         .from("profiles")
@@ -133,14 +138,25 @@ export async function POST(req: NextRequest) {
         .eq("id", userId)
         
       if (job?.id) {
-          await failJob(supabase, job.id, "No image URL returned")
+          await failJob(supabase, job.id, "No output returned from Novita")
       }
-      return NextResponse.json({ error: "No image URL returned" }, { status: 502 })
+      return NextResponse.json({ error: "No output returned from Novita" }, { status: 502 })
     }
 
-    // 5. Upload to S3 and save asset
+    // 5. If it's async (has taskId), update status to running
+    if (taskId && job?.id) {
+        console.log("[Novita] Async task detected, updating status to running. TaskID:", taskId)
+        await supabase.from("generation_jobs").update({ 
+            provider_job_id: taskId,
+            task_id: taskId,
+            status: "running"
+        }).eq("id", job.id)
+        return NextResponse.json({ taskId })
+    }
+
+    // 6. If it's sync (has url), upload to S3 and save asset
     let finalUrl = url
-    if (job?.id) {
+    if (url && job?.id) {
         try {
             const s3Key = `t2i/${userId}/${job.id}.png`
             console.log("[Novita] Uploading to S3:", s3Key)
