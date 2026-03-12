@@ -19,8 +19,13 @@ async function safeInsertSingle(
   const maxRetries = 25
   let currentPayload = { ...payload }
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const { data, error } = await supabase.from(table).insert(currentPayload).select().single()
-    if (!error) return data
+    const { data, error } = await supabase.from(table).insert(currentPayload).select("*").single()
+    if (!error) {
+      if (!data?.id) {
+        throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`)
+      }
+      return data
+    }
 
     const missing = parseMissingColumn(error)
     if (missing && Object.prototype.hasOwnProperty.call(currentPayload, missing)) {
