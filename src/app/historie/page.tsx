@@ -35,9 +35,8 @@ export default function HistoriePage() {
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
 
-  const handleDownload = (id: string) => {
-    // Použijeme náš proxy endpoint, ktorý vnúti stiahnutie cez Content-Disposition
-    window.location.href = `/api/history/download?id=${id}`
+  const handleDownload = (url: string) => {
+    window.open(url, '_blank')
   }
 
   useEffect(() => {
@@ -159,7 +158,7 @@ export default function HistoriePage() {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             {it.status === 'succeeded' && it.url && (
                                 <button
-                                    onClick={() => handleDownload(it.id)}
+                                    onClick={() => handleDownload(it.url!)}
                                     style={{
                                         background: primary,
                                         color: '#FFFFFF',
