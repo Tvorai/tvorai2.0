@@ -19,6 +19,7 @@ type Item = {
   status: string
   provider: string
   cost: number
+  prompt?: string
   assets: Asset[]
   url?: string
 }
@@ -33,6 +34,25 @@ export default function HistoriePage() {
 
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (e) {
+      console.error('Download failed', e)
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+    }
+  }
 
   useEffect(() => {
     let canceled = false
@@ -143,21 +163,51 @@ export default function HistoriePage() {
                                  it.type === 'video' ? 'Video' : 
                                  it.type === 'faceswap' ? 'Výměna tváří' : it.type}
                             </div>
-                            <div style={{ fontSize: 13, opacity: 0.6, fontFamily: 'monospace' }}>
+                            <div style={{ fontSize: 14, color: '#FFFFFF', marginBottom: 4, opacity: 0.9 }}>
+                                {it.prompt || 'Bez popisu'}
+                            </div>
+                            <div style={{ fontSize: 12, opacity: 0.4, fontFamily: 'monospace' }}>
                                 {it.id}
                             </div>
                         </div>
-                        <div style={{ 
-                            padding: '4px 10px', 
-                            borderRadius: 999, 
-                            fontSize: 12, 
-                            fontWeight: 700,
-                            background: it.status === 'succeeded' ? 'rgba(16, 185, 129, 0.2)' : it.status === 'failed' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(234, 179, 8, 0.2)',
-                            color: it.status === 'succeeded' ? '#34D399' : it.status === 'failed' ? '#F87171' : '#FBBF24',
-                        }}>
-                            {it.status === 'succeeded' ? 'Hotovo' : 
-                             it.status === 'failed' ? 'Chyba' : 
-                             it.status === 'running' ? 'Generuje se' : 'Ve frontě'}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            {it.status === 'succeeded' && it.url && (
+                                <button
+                                    onClick={() => handleDownload(it.url!, `${it.type}-${it.id}.${it.type === 'video' ? 'mp4' : 'png'}`)}
+                                    style={{
+                                        background: primary,
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        borderRadius: 12,
+                                        padding: '8px 16px',
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6
+                                    }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    Stáhnout
+                                </button>
+                            )}
+                            <div style={{ 
+                                padding: '4px 10px', 
+                                borderRadius: 999, 
+                                fontSize: 12, 
+                                fontWeight: 700,
+                                background: it.status === 'succeeded' ? 'rgba(16, 185, 129, 0.2)' : it.status === 'failed' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+                                color: it.status === 'succeeded' ? '#34D399' : it.status === 'failed' ? '#F87171' : '#FBBF24',
+                            }}>
+                                {it.status === 'succeeded' ? 'Hotovo' : 
+                                 it.status === 'failed' ? 'Chyba' : 
+                                 it.status === 'running' ? 'Generuje se' : 'Ve frontě'}
+                            </div>
                         </div>
                     </div>
                     
