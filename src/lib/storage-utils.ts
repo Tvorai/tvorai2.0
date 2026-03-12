@@ -92,13 +92,25 @@ export async function uploadToS3(
   contentType: string
 ): Promise<string> {
   const bucket = process.env.AWS_S3_BUCKET || "tvorai-history-prod"
+  const region = process.env.AWS_REGION || "eu-north-1"
+  
+  console.log(`[S3] Uploading asset:`, {
+    bucket,
+    region,
+    key,
+    contentType,
+    size: buffer.length
+  })
+
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
     Body: buffer,
     ContentType: contentType,
   })
+  
   await s3Client.send(command)
+  console.log(`[S3] Upload successful: ${key}`)
   return key
 }
 
@@ -109,6 +121,12 @@ export async function getSignedUrlForAsset(key: string): Promise<string> {
     Key: key,
   })
   return await getSignedUrl(s3Client, command, { expiresIn: 3600 }) // 1 hour
+}
+
+export function getPublicUrlForAsset(key: string): string {
+  const bucket = process.env.AWS_S3_BUCKET || "tvorai-history-prod"
+  const region = process.env.AWS_REGION || "eu-north-1"
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
 }
 
 export async function downloadAndUploadToS3(
