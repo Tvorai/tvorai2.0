@@ -185,14 +185,18 @@ export async function completeJobWithAsset(
 ) {
   if (!jobId) return
 
+  // Získame trvalú verejnú S3 URL (aj keď bucket je private, toto je štandardný formát)
+  // Prípadne môžeme použiť pôvodnú Novita URL ako fallback
+  const s3PublicUrl = getPublicUrlForAsset(s3Key)
+
   const patch: Record<string, any> = {
     status: "succeeded",
     s3_key: s3Key,
     mime,
-    image_url: originalUrl,
+    image_url: s3PublicUrl || originalUrl, // Uprednostníme AWS URL
   }
 
-  console.log("[DB] Completing generation_jobs record", { id: jobId, s3Key })
+  console.log("[DB] Completing generation_jobs record", { id: jobId, s3Key, imageUrl: patch.image_url })
   await safeUpdateById(supabase, "generation_jobs", jobId, patch)
   console.log("[DB] Completed generation_jobs record", { id: jobId })
 }

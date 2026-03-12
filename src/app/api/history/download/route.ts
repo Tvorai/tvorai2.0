@@ -12,14 +12,27 @@ export async function GET(req: NextRequest) {
   if (!jobId) return NextResponse.json({ error: "Missing job ID" }, { status: 400 })
 
   try {
-    // 1. Fetch job from DB
-    const { data: job, error } = await supabase
-      .from("generations")
+    // 1. Fetch job from DB - check both tables because of potential sync delay
+    let { data: job, error } = await supabase
+      .from("generation_jobs")
       .select("s3_key, type")
       .eq("id", jobId)
       .single()
 
+    if (error || !job?.s3_key) {
+      console.log("[Download] Job not found in generation_jobs or missing s3_key, checking generations table...")
+      const { data: genJob, error: genError } = await supabase
+        .from("generations")
+        .select("s3_key, type")
+        .eq("id", jobId)
+        .single()
+      
+      job = genJob
+      error = genError
+    }
+
     if (error || !job || !job.s3_key) {
+      console.error("[Download] Asset not found in any table:", { jobId, error })
       return NextResponse.json({ error: "Job or asset not found" }, { status: 404 })
     }
 
