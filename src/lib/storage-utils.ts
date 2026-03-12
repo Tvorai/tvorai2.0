@@ -22,8 +22,10 @@ async function safeInsertSingle(
     const { data, error } = await supabase.from(table).insert(currentPayload).select("*").single()
     if (!error) {
       if (!data?.id) {
+        console.error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`, { data })
         throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`)
       }
+      console.log(`[DB] Insert returned row from ${table}`, data)
       return data
     }
 
@@ -137,10 +139,6 @@ export async function createJob(
 
   console.log("[DB] Creating generation_jobs record", { userId, provider, type, prompt: payload.prompt })
   const data = await safeInsertSingle(supabase, "generation_jobs", payload)
-  if (!data?.id) {
-    console.error("[DB] Insert successful but no ID returned", { data })
-  }
-  console.log("[DB] Created generation_jobs record", { id: data?.id })
   return data
 }
 

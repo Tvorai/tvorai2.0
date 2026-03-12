@@ -80,13 +80,10 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     job = await createJob(supabase, userId, "image", "seedream", { prompt, size }, COST)
-    if (job?.id) {
-      console.log("[Novita] Job created in DB:", job.id)
-    } else {
-      console.warn("[Novita] Job created but no ID returned")
-    }
-  } catch (e) {
+    console.log("[Novita] Job created in DB:", job.id)
+  } catch (e: any) {
     console.error("[Novita] Failed to create job record", e)
+    return NextResponse.json({ error: `Failed to create job: ${e.message}` }, { status: 500 })
   }
 
   try {
@@ -114,9 +111,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) }) // Restore original
         .eq("id", userId)
       
-      if (job?.id) {
-          await failJob(supabase, job.id, text)
-      }
+      await failJob(supabase, job.id, text)
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
@@ -137,14 +132,12 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
         
-      if (job?.id) {
-          await failJob(supabase, job.id, "No output returned from Novita")
-      }
+      await failJob(supabase, job.id, "No output returned from Novita")
       return NextResponse.json({ error: "No output returned from Novita" }, { status: 502 })
     }
 
     // 5. If it's async (has taskId), update status to running
-    if (taskId && job?.id) {
+    if (taskId) {
         console.log("[Novita] Async task detected, updating status to running. TaskID:", taskId)
         await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
@@ -156,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     // 6. If it's sync (has url), upload to S3 and save asset
     let finalUrl = url
-    if (url && job?.id) {
+    if (url) {
         try {
             const s3Key = `t2i/${userId}/${job.id}.png`
             console.log("[Novita] Uploading to S3:", s3Key)
@@ -167,9 +160,7 @@ export async function POST(req: NextRequest) {
             console.log("[Novita] Job completed. Signed URL generated.")
         } catch (e: any) {
             console.error("[Novita] Failed to upload to S3", e)
-            if (job?.id) {
-              await failJob(supabase, job.id, `S3 upload failed: ${e.message}`)
-            }
+            await failJob(supabase, job.id, `S3 upload failed: ${e.message}`)
         }
     }
 
