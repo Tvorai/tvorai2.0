@@ -19,26 +19,33 @@ async function safeInsertSingle(
   const maxRetries = 25
   let currentPayload = { ...payload }
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const { data, error } = await supabase.from(table).insert(currentPayload).select("*").single()
-    if (!error) {
-      if (!data?.id) {
-        console.error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`, { data })
-        throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`)
+    console.log(`[DB] Attempting insert into '${table}'`, { attempt, payload: currentPayload })
+    
+    const { data, error } = await supabase
+      .from(table)
+      .insert(currentPayload)
+      .select("*")
+      .single()
+
+    if (error) {
+      const missing = parseMissingColumn(error)
+      if (missing && Object.prototype.hasOwnProperty.call(currentPayload, missing)) {
+        console.log(`[DB] Missing column '${missing}' on '${table}', retrying without it`)
+        const { [missing]: _omit, ...rest } = currentPayload
+        currentPayload = rest
+        continue
       }
-      console.log(`[DB] Insert returned row from ${table}`, data)
-      return data
+      console.error(`[DB] Insert into '${table}' failed`, { error, payload: currentPayload })
+      throw error
     }
 
-    const missing = parseMissingColumn(error)
-    if (missing && Object.prototype.hasOwnProperty.call(currentPayload, missing)) {
-      console.log(`[DB] Missing column '${missing}' on '${table}', retrying without it`)
-      const { [missing]: _omit, ...rest } = currentPayload
-      currentPayload = rest
-      continue
+    if (!data?.id) {
+      console.error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`, { data })
+      throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`)
     }
 
-    console.error(`[DB] Insert into '${table}' failed`, { error, payload: currentPayload })
-    throw error
+    console.log(`[DB] Insert returned row from ${table}`, data)
+    return data
   }
 
   throw new Error(`[DB] Insert into '${table}' failed after retries`)
