@@ -2,6 +2,7 @@ import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { s3Client } from "./s3"
 import { SupabaseClient } from "@supabase/supabase-js"
+import { randomUUID } from "crypto"
 
 const BUCKET = process.env.AWS_S3_BUCKET!
 
@@ -39,13 +40,16 @@ async function safeInsertSingle(
       throw error
     }
 
-    if (!data?.id) {
-      console.error(`[DB] Insert succeeded but NO ID returned from Supabase. Data:`, data)
+    // Ak Postgres vráti null kvôli RLS, ale my sme ID poslali v payloade, použijeme to naše.
+    const finalData = (data && data.id) ? data : { ...currentPayload, ...data }
+
+    if (!finalData?.id) {
+      console.error(`[DB] Insert into '${table}' succeeded but NO ID returned from Supabase. Data:`, finalData)
       throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase. Check RLS policies!`)
     }
 
-    console.log(`[DB] Insert successful, returned row:`, data)
-    return data
+    console.log(`[DB] Insert successful, returned row:`, finalData)
+    return finalData
   }
 
   throw new Error(`[DB] Insert into '${table}' failed after retries`)
@@ -129,7 +133,11 @@ export async function createJob(
   cost: number,
   providerJobId?: string
 ) {
+  // GENERUJEME UUID MANUÁLNE TU, aby sme ho vedeli aj keď RLS blokuje SELECT
+  const jobId = randomUUID()
+
   const payload = {
+    id: jobId,
     user_id: userId,
     type,
     status: providerJobId ? "running" : "queued",
@@ -144,7 +152,7 @@ export async function createJob(
     input_json: inputJson,
   }
 
-  console.log("[DB] Creating generation_jobs record", { userId, provider, type, prompt: payload.prompt })
+  console.log("[DB] Creating generation_jobs record", { id: jobId, userId, provider, type, prompt: payload.prompt })
   const data = await safeInsertSingle(supabase, "generation_jobs", payload)
   return data
 }
