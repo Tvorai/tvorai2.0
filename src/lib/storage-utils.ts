@@ -40,11 +40,11 @@ async function safeInsertSingle(
     }
 
     if (!data?.id) {
-      console.error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`, { data })
-      throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase`)
+      console.error(`[DB] Insert succeeded but NO ID returned from Supabase. Data:`, data)
+      throw new Error(`[DB] Insert into '${table}' succeeded but no ID returned from Supabase. Check RLS policies!`)
     }
 
-    console.log(`[DB] Insert returned row from ${table}`, data)
+    console.log(`[DB] Insert successful, returned row:`, data)
     return data
   }
 
