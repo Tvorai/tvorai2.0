@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { createJob } from "@/lib/storage-utils"
+import { createJob, failJob } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -9,7 +9,9 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   const key = process.env.NOVITA_API_KEY
+  console.log("[Novita I2V] Starting generation")
   if (!key) {
+    console.error("[Novita I2V] Missing NOVITA_API_KEY")
     return NextResponse.json({ error: "NOVITA_API_KEY is missing" }, { status: 500 })
   }
 
@@ -17,6 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     formData = await req.formData()
   } catch {
+    console.error("[Novita I2V] Invalid form data")
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 })
   }
 
@@ -24,6 +27,8 @@ export async function POST(req: NextRequest) {
   const prompt = (formData.get("prompt") as string || "").trim()
   const duration = parseInt((formData.get("duration") as string) || "5", 10)
   const userId = formData.get("userId") as string
+
+  console.log("[Novita I2V] Params:", { prompt, duration, userId })
 
   if (!image || !(image instanceof File)) {
     return NextResponse.json({ error: "Missing image file" }, { status: 400 })
@@ -41,15 +46,16 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (profileError || !profile) {
+    console.error("[Novita I2V] User profile not found:", userId)
     return NextResponse.json({ error: "User profile not found" }, { status: 404 })
   }
 
   if ((profile.credits || 0) < cost) {
+    console.warn("[Novita I2V] Insufficient credits:", { userId, current: profile.credits, cost })
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
   }
 
-  // 2. Upload image to Supabase Storage to get a URL (for Novita input)
-  // TODO: We could also upload this to S3 as an input asset, but for now Supabase is fine for input.
+  // 2. Upload image to Supabase Storage
   const fileExt = image.name.split('.').pop()
   const fileName = `i2v/${userId}/${Date.now()}.${fileExt}`
   const { data: uploadData, error: uploadError } = await supabase
@@ -61,18 +67,17 @@ export async function POST(req: NextRequest) {
     })
 
   if (uploadError) {
-    console.error("Upload error:", uploadError)
+    console.error("[Novita I2V] Upload error:", uploadError)
     return NextResponse.json({ error: "Failed to upload image" }, { status: 500 })
   }
 
-  // Get signed URL valid for 1 hour
   const { data: signedUrlData, error: signedUrlError } = await supabase
     .storage
     .from('generations')
     .createSignedUrl(fileName, 3600)
 
   if (signedUrlError || !signedUrlData?.signedUrl) {
-    console.error("Signed URL error:", signedUrlError)
+    console.error("[Novita I2V] Signed URL error:", signedUrlError)
     return NextResponse.json({ error: "Failed to get image URL" }, { status: 500 })
   }
 
@@ -86,6 +91,7 @@ export async function POST(req: NextRequest) {
     .eq("id", userId)
 
   if (updateError) {
+    console.error("[Novita I2V] Failed to update credits:", updateError)
     return NextResponse.json({ error: "Failed to update credits" }, { status: 500 })
   }
 
@@ -97,10 +103,20 @@ export async function POST(req: NextRequest) {
     note: `i2v generation (${duration}s)`,
     balance_after: newBalance
   }).then(({ error }) => {
-    if (error) console.error("Error logging transaction:", error)
+    if (error) console.error("[Novita I2V] Error logging transaction:", error)
   })
 
+  let job: any
   try {
+    // Initial job record (queued)
+    job = await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration, image_url: imageUrl }, cost)
+    console.log("[Novita I2V] Job created in DB:", job.id)
+  } catch (e) {
+    console.error("[Novita I2V] Failed to create job record", e)
+  }
+
+  try {
+    console.log("[Novita I2V] Calling Wan I2V API...")
     // Novita Wan 2.1 I2V
     const res = await fetch("https://api.novita.ai/v3/async/wan-i2v", {
       method: "POST",
@@ -120,22 +136,37 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text()
+      console.error("[Novita I2V] API error:", { status: res.status, text })
       // Refund
       await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
+      if (job) {
+          await failJob(supabase, job.id, text)
+      }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
     const data = await res.json()
     const taskId = data.task_id
+    console.log("[Novita I2V] API task created:", taskId)
 
-    // 5. Create Job Record
-    // We store taskId as provider_job_id so we can look it up later in task-result
-    await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration }, cost, taskId)
+    // 5. Update Job Record with task_id
+    if (job) {
+        await supabase.from("generation_jobs").update({ 
+            provider_job_id: taskId,
+            task_id: taskId,
+            status: "running"
+        }).eq("id", job.id)
+        console.log("[Novita I2V] Job updated with taskId:", taskId)
+    }
 
     return NextResponse.json({ taskId })
   } catch (e: any) {
+    console.error("[Novita I2V] Unexpected error:", e)
     // Refund
     await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
+    if (job) {
+        await failJob(supabase, job.id, e?.message || "Upstream error")
+    }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }
 }

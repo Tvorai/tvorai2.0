@@ -5,6 +5,65 @@ import { SupabaseClient } from "@supabase/supabase-js"
 
 const BUCKET = process.env.AWS_S3_BUCKET!
 
+function parseMissingColumn(error: any): string | null {
+  const message = typeof error?.message === "string" ? error.message : ""
+  const match = message.match(/Could not find the '([^']+)' column/)
+  return match?.[1] ?? null
+}
+
+async function safeInsertSingle(
+  supabase: SupabaseClient,
+  table: string,
+  payload: Record<string, any>
+) {
+  const maxRetries = 25
+  let currentPayload = { ...payload }
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const { data, error } = await supabase.from(table).insert(currentPayload).select().single()
+    if (!error) return data
+
+    const missing = parseMissingColumn(error)
+    if (missing && Object.prototype.hasOwnProperty.call(currentPayload, missing)) {
+      console.log(`[DB] Missing column '${missing}' on '${table}', retrying without it`)
+      const { [missing]: _omit, ...rest } = currentPayload
+      currentPayload = rest
+      continue
+    }
+
+    console.error(`[DB] Insert into '${table}' failed`, { error, payload: currentPayload })
+    throw error
+  }
+
+  throw new Error(`[DB] Insert into '${table}' failed after retries`)
+}
+
+async function safeUpdateById(
+  supabase: SupabaseClient,
+  table: string,
+  id: string,
+  patch: Record<string, any>
+) {
+  const maxRetries = 25
+  let currentPatch = { ...patch }
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const { error } = await supabase.from(table).update(currentPatch).eq("id", id)
+    if (!error) return
+
+    const missing = parseMissingColumn(error)
+    if (missing && Object.prototype.hasOwnProperty.call(currentPatch, missing)) {
+      console.log(`[DB] Missing column '${missing}' on '${table}', retrying without it`)
+      const { [missing]: _omit, ...rest } = currentPatch
+      currentPatch = rest
+      continue
+    }
+
+    console.error(`[DB] Update '${table}' failed`, { error, id, patch: currentPatch })
+    throw error
+  }
+
+  throw new Error(`[DB] Update '${table}' failed after retries`)
+}
+
 export async function uploadToS3(
   buffer: Buffer,
   key: string,
@@ -50,27 +109,24 @@ export async function createJob(
   cost: number,
   providerJobId?: string
 ) {
-  const { data, error } = await supabase
-    .from("generations")
-    .insert({
-      user_id: userId,
-      type,
-      status: providerJobId ? "running" : "succeeded", // async jobs start as running, sync as succeeded immediately (if we upload immediately)
-      provider,
-      provider_job_id: providerJobId,
-      prompt: inputJson.prompt, // Store prompt directly in generations table
-      width: inputJson.width,
-      height: inputJson.height,
-      duration: inputJson.duration,
-      cost,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    console.error("Failed to insert generation record:", error)
-    throw error
+  const payload = {
+    user_id: userId,
+    type,
+    status: providerJobId ? "running" : "queued",
+    provider,
+    provider_job_id: providerJobId,
+    task_id: providerJobId,
+    prompt: inputJson?.prompt,
+    width: inputJson?.width,
+    height: inputJson?.height,
+    duration: inputJson?.duration,
+    cost,
+    input_json: inputJson,
   }
+
+  console.log("[DB] Creating generation_jobs record", { userId, provider, type, prompt: payload.prompt })
+  const data = await safeInsertSingle(supabase, "generation_jobs", payload)
+  console.log("[DB] Created generation_jobs record", { id: data?.id })
   return data
 }
 
@@ -78,21 +134,33 @@ export async function completeJobWithAsset(
   supabase: SupabaseClient,
   jobId: string,
   s3Key: string,
-  mime: string
+  mime: string,
+  originalUrl?: string
 ) {
-  // Update generation record with S3 key and status
-  const { error: jobError } = await supabase
-    .from("generations")
-    .update({ 
-      status: "succeeded",
-      s3_key: s3Key,
-      mime: mime,
-      // We can also store the public URL if needed, but we use signed URLs
-    })
-    .eq("id", jobId)
-    
-  if (jobError) {
-    console.error(`Failed to update generation ${jobId}:`, jobError)
-    throw jobError
+  const patch: Record<string, any> = {
+    status: "succeeded",
+    s3_key: s3Key,
+    mime,
+    image_url: originalUrl,
   }
+
+  console.log("[DB] Completing generation_jobs record", { id: jobId, s3Key })
+  await safeUpdateById(supabase, "generation_jobs", jobId, patch)
+  console.log("[DB] Completed generation_jobs record", { id: jobId })
+}
+
+export async function failJob(
+  supabase: SupabaseClient,
+  jobId: string,
+  errorMessage: string
+) {
+  const patch: Record<string, any> = {
+    status: "failed",
+    error_message: errorMessage,
+    error: errorMessage,
+  }
+
+  console.log("[DB] Failing generation_jobs record", { id: jobId, error: errorMessage })
+  await safeUpdateById(supabase, "generation_jobs", jobId, patch)
+  console.log("[DB] Failed generation_jobs record", { id: jobId })
 }

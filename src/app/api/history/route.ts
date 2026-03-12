@@ -31,31 +31,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch generations
+    console.log("[History] Fetch generations", { userId: user.id })
     const { data: jobs, error: jobsError } = await supabase
       .from("generations")
-      .select(`
-        id, created_at, type, status, provider, prompt, cost, s3_key, mime
-      `)
+      .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50)
 
     if (jobsError) throw jobsError
 
-    // Sign URLs for assets
-    const jobsWithSignedUrls = await Promise.all(jobs.map(async (job) => {
-      let url = null
+    const jobsWithSignedUrls = await Promise.all(jobs.map(async (job: any) => {
+      let url: string | null = job.image_url ?? null
       if (job.s3_key) {
         try {
           url = await getSignedUrlForAsset(job.s3_key)
         } catch (e) {
-          console.error(`Failed to sign URL for ${job.s3_key}`, e)
+          console.error(`[History] Failed to sign URL`, { s3Key: job.s3_key, error: e })
         }
       }
       return { ...job, url }
     }))
 
+    console.log("[History] Return generations", { count: jobsWithSignedUrls.length })
     return NextResponse.json({ jobs: jobsWithSignedUrls })
   } catch (e: any) {
     console.error("History API error:", e)

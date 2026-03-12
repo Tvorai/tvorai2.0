@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { downloadAndUploadToS3, completeJobWithAsset, getSignedUrlForAsset } from "@/lib/storage-utils"
+import { downloadAndUploadToS3, completeJobWithAsset, getSignedUrlForAsset, failJob } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "NOVITA_API_KEY is missing" }, { status: 500 })
   }
 
+  console.log(`[TaskResult] Checking status for task: ${taskId}`)
+
   try {
     const res = await fetch(`https://api.novita.ai/v3/async/task-result?task_id=${taskId}`, {
       method: "GET",
@@ -28,18 +30,17 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text()
+      console.error(`[TaskResult] API error for task ${taskId}:`, { status: res.status, text })
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
     }
 
     const data = await res.json()
-    // data structure:
-    // { task: { status: "TASK_STATUS_SUCCEED" | "TASK_STATUS_FAILED" | "TASK_STATUS_QUEUED" | "TASK_STATUS_PROCESSING", reason: "" }, videos: [{ video_url: "..." }] }
-    
     const status = data.task?.status
+    console.log(`[TaskResult] Task ${taskId} status: ${status}`)
 
     // Look up the job in our DB
     const { data: job } = await supabase
-        .from("generations")
+        .from("generation_jobs")
         .select("id, user_id, status, cost")
         .eq("provider_job_id", taskId)
         .single()
@@ -52,58 +53,45 @@ export async function GET(req: NextRequest) {
             if (videoUrl) {
                 try {
                     const s3Key = `video/${job.user_id}/${job.id}.mp4`
-                    console.log(`[TaskResult] Starting upload to S3: ${s3Key}`)
+                    console.log(`[TaskResult] Starting download and upload to S3: ${s3Key}`)
                     
                     await downloadAndUploadToS3(videoUrl, s3Key, "video/mp4")
                     console.log(`[TaskResult] Uploaded to S3 successfully`)
                     
-                    await completeJobWithAsset(supabase, job.id, s3Key, "video/mp4")
+                    await completeJobWithAsset(supabase, job.id, s3Key, "video/mp4", videoUrl)
                     console.log(`[TaskResult] Updated job status and assets in DB`)
                     
-                    // Replace the video_url in the response with our signed URL
                     const signedUrl = await getSignedUrlForAsset(s3Key)
                     console.log(`[TaskResult] Generated signed URL: ${signedUrl}`)
                     
-                    // Modify data to return our signed URL to frontend
                     if (data.videos && data.videos[0]) {
                         data.videos[0].video_url = signedUrl
                     }
-                } catch (e) {
-                    console.error("[TaskResult] Failed to upload video result to S3", e)
+                } catch (e: any) {
+                    console.error("[TaskResult] Failed to process video result", e)
+                    await failJob(supabase, job.id, `Processing failed: ${e.message}`)
                 }
             }
         } else if (status === "TASK_STATUS_FAILED" && job.status !== "failed") {
-            console.log(`[TaskResult] Job ${job.id} failed. Reason: ${data.task?.reason}`)
+            const reason = data.task?.reason || "Unknown Novita error"
+            console.warn(`[TaskResult] Job ${job.id} failed. Reason: ${reason}`)
             
-            await supabase.from("generations").update({ 
-                status: "failed", 
-                error: data.task?.reason 
-            }).eq("id", job.id)
+            await failJob(supabase, job.id, reason)
             
             // Refund
-             if (job.cost) {
-                 const { data: profile } = await supabase.from("profiles").select("credits").eq("id", job.user_id).single()
-                 if (profile) {
-                     const newCredits = (profile.credits || 0) + job.cost
-                     await supabase.from("profiles").update({ credits: newCredits }).eq("id", job.user_id)
-                     
-                     // Log refund
-                     await supabase.from("credit_transactions").insert({
-                         user_id: job.user_id,
-                         type: "refund",
-                         amount: job.cost,
-                         note: `Refund for failed job ${job.id}`,
-                         balance_after: newCredits
-                     })
-                     console.log(`[TaskResult] Refunded ${job.cost} credits to user ${job.user_id}`)
-                 }
-             }
+            const { data: profile } = await supabase.from("profiles").select("credits").eq("id", job.user_id).single()
+            if (profile) {
+                await supabase.from("profiles").update({ credits: profile.credits + job.cost }).eq("id", job.user_id)
+                console.log(`[TaskResult] Refunded ${job.cost} credits to user ${job.user_id}`)
+            }
         }
+    } else {
+      console.warn(`[TaskResult] No job found in DB for taskId: ${taskId}`)
     }
-    
+
     return NextResponse.json(data)
   } catch (e: any) {
-    console.error("[TaskResult] Error:", e)
+    console.error(`[TaskResult] Unexpected error for task ${taskId}:`, e)
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
   }
 }
