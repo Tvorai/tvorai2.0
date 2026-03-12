@@ -80,10 +80,13 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     job = await createJob(supabase, userId, "image", "seedream", { prompt, size }, COST)
-    console.log("[Novita] Job created in DB:", job.id)
+    if (job?.id) {
+      console.log("[Novita] Job created in DB:", job.id)
+    } else {
+      console.warn("[Novita] Job created but no ID returned")
+    }
   } catch (e) {
     console.error("[Novita] Failed to create job record", e)
-    // Continue anyway, but history won't work well
   }
 
   try {
@@ -111,7 +114,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) }) // Restore original
         .eq("id", userId)
       
-      if (job) {
+      if (job?.id) {
           await failJob(supabase, job.id, text)
       }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
         
-      if (job) {
+      if (job?.id) {
           await failJob(supabase, job.id, "No image URL returned")
       }
       return NextResponse.json({ error: "No image URL returned" }, { status: 502 })
@@ -137,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Upload to S3 and save asset
     let finalUrl = url
-    if (job) {
+    if (job?.id) {
         try {
             const s3Key = `t2i/${userId}/${job.id}.png`
             console.log("[Novita] Uploading to S3:", s3Key)
@@ -148,7 +151,7 @@ export async function POST(req: NextRequest) {
             console.log("[Novita] Job completed. Signed URL generated.")
         } catch (e: any) {
             console.error("[Novita] Failed to upload to S3", e)
-            if (job) {
+            if (job?.id) {
               await failJob(supabase, job.id, `S3 upload failed: ${e.message}`)
             }
         }
@@ -163,7 +166,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
         
-    if (job) {
+    if (job?.id) {
         await failJob(supabase, job.id, e?.message || "Upstream error")
     }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })

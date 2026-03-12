@@ -79,7 +79,9 @@ export async function POST(req: NextRequest) {
   try {
     // Initial job record (queued)
     job = await createJob(supabase, userId, "video", "wan-2.2-t2v", { prompt, duration }, cost)
-    console.log("[Novita T2V] Job created in DB:", job.id)
+    if (job?.id) {
+      console.log("[Novita T2V] Job created in DB:", job.id)
+    }
   } catch (e) {
     console.error("[Novita T2V] Failed to create job record", e)
   }
@@ -107,7 +109,7 @@ export async function POST(req: NextRequest) {
       console.error("[Novita T2V] API error:", { status: res.status, text })
       // Refund
       await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
-      if (job) {
+      if (job?.id) {
           await failJob(supabase, job.id, text)
       }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest) {
     console.log("[Novita T2V] API task created:", taskId)
     
     // 4. Update Job Record with task_id
-    if (job) {
+    if (job?.id) {
         await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
             task_id: taskId,
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
     console.error("[Novita T2V] Unexpected error:", e)
     // Refund
     await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
-    if (job) {
+    if (job?.id) {
         await failJob(supabase, job.id, e?.message || "Upstream error")
     }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })

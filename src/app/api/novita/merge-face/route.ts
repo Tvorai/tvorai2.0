@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     job = await createJob(supabase, userId, "faceswap", "merge-face", {}, COST)
-    console.log("[Novita MergeFace] Job created in DB:", job.id)
+    if (job?.id) {
+      console.log("[Novita MergeFace] Job created in DB:", job.id)
+    }
   } catch (e) {
     console.error("[Novita MergeFace] Failed to create job record", e)
   }
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
       
-      if (job) {
+      if (job?.id) {
           await failJob(supabase, job.id, text)
       }
       return NextResponse.json({ error: `Novita error ${res.status}: ${text}` }, { status: 502 })
@@ -137,7 +139,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
         
-      if (job) {
+      if (job?.id) {
           await failJob(supabase, job.id, "No image returned")
       }
       return NextResponse.json({ error: "No image returned" }, { status: 502 })
@@ -149,7 +151,7 @@ export async function POST(req: NextRequest) {
     
     // 5. Upload to S3
     let finalUrl = url
-    if (job) {
+    if (job?.id) {
         try {
             const buffer = Buffer.from(data.image_file, "base64")
             const s3Key = `faceswap/${userId}/${job.id}.png`
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
             console.log("[Novita MergeFace] Job completed. Signed URL generated.")
         } catch (e: any) {
             console.error("[Novita MergeFace] Failed to upload to S3", e)
-            if (job) {
+            if (job?.id) {
               await failJob(supabase, job.id, `S3 upload failed: ${e.message}`)
             }
         }
@@ -176,7 +178,7 @@ export async function POST(req: NextRequest) {
         .update({ credits: (profile.credits || 0) })
         .eq("id", userId)
     
-    if (job) {
+    if (job?.id) {
         await failJob(supabase, job.id, e?.message || "Upstream error")
     }
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })

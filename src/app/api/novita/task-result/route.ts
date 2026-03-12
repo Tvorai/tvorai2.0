@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         .eq("provider_job_id", taskId)
         .single()
     
-    if (job) {
+    if (job?.id) {
         if (status === "TASK_STATUS_SUCCEED" && job.status !== "succeeded") {
             const videoUrl = data.videos?.[0]?.video_url
             console.log(`[TaskResult] Job ${job.id} succeeded. Video URL: ${videoUrl}`)
@@ -69,14 +69,18 @@ export async function GET(req: NextRequest) {
                     }
                 } catch (e: any) {
                     console.error("[TaskResult] Failed to process video result", e)
-                    await failJob(supabase, job.id, `Processing failed: ${e.message}`)
+                    if (job?.id) {
+                        await failJob(supabase, job.id, `Processing failed: ${e.message}`)
+                    }
                 }
             }
         } else if (status === "TASK_STATUS_FAILED" && job.status !== "failed") {
             const reason = data.task?.reason || "Unknown Novita error"
             console.warn(`[TaskResult] Job ${job.id} failed. Reason: ${reason}`)
             
-            await failJob(supabase, job.id, reason)
+            if (job?.id) {
+                await failJob(supabase, job.id, reason)
+            }
             
             // Refund
             const { data: profile } = await supabase.from("profiles").select("credits").eq("id", job.user_id).single()

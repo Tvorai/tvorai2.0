@@ -43,6 +43,10 @@ async function safeUpdateById(
   id: string,
   patch: Record<string, any>
 ) {
+  if (!id) {
+    console.warn(`[DB] Cannot update '${table}' because ID is missing`, { patch })
+    return
+  }
   const maxRetries = 25
   let currentPatch = { ...patch }
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -69,8 +73,9 @@ export async function uploadToS3(
   key: string,
   contentType: string
 ): Promise<string> {
+  const bucket = process.env.AWS_S3_BUCKET || "tvorai-history-prod"
   const command = new PutObjectCommand({
-    Bucket: BUCKET,
+    Bucket: bucket,
     Key: key,
     Body: buffer,
     ContentType: contentType,
@@ -80,8 +85,9 @@ export async function uploadToS3(
 }
 
 export async function getSignedUrlForAsset(key: string): Promise<string> {
+  const bucket = process.env.AWS_S3_BUCKET || "tvorai-history-prod"
   const command = new GetObjectCommand({
-    Bucket: BUCKET,
+    Bucket: bucket,
     Key: key,
   })
   return await getSignedUrl(s3Client, command, { expiresIn: 3600 }) // 1 hour
@@ -126,6 +132,9 @@ export async function createJob(
 
   console.log("[DB] Creating generation_jobs record", { userId, provider, type, prompt: payload.prompt })
   const data = await safeInsertSingle(supabase, "generation_jobs", payload)
+  if (!data?.id) {
+    console.error("[DB] Insert successful but no ID returned", { data })
+  }
   console.log("[DB] Created generation_jobs record", { id: data?.id })
   return data
 }
@@ -137,6 +146,8 @@ export async function completeJobWithAsset(
   mime: string,
   originalUrl?: string
 ) {
+  if (!jobId) return
+
   const patch: Record<string, any> = {
     status: "succeeded",
     s3_key: s3Key,
@@ -154,6 +165,8 @@ export async function failJob(
   jobId: string,
   errorMessage: string
 ) {
+  if (!jobId) return
+
   const patch: Record<string, any> = {
     status: "failed",
     error_message: errorMessage,
