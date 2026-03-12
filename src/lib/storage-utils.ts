@@ -114,11 +114,12 @@ export async function uploadToS3(
   return key
 }
 
-export async function getSignedUrlForAsset(key: string): Promise<string> {
+export async function getSignedUrlForAsset(key: string, downloadName?: string): Promise<string> {
   const bucket = process.env.AWS_S3_BUCKET || "tvorai-history-prod"
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,
+    ResponseContentDisposition: downloadName ? `attachment; filename="${downloadName}"` : undefined
   })
   return await getSignedUrl(s3Client, command, { expiresIn: 3600 }) // 1 hour
 }

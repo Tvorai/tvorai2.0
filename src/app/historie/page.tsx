@@ -35,23 +35,9 @@ export default function HistoriePage() {
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
 
-  const handleDownload = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(blobUrl)
-    } catch (e) {
-      console.error('Download failed', e)
-      // Fallback: open in new tab
-      window.open(url, '_blank')
-    }
+  const handleDownload = (id: string) => {
+    // Použijeme náš proxy endpoint, ktorý vnúti stiahnutie cez Content-Disposition
+    window.location.href = `/api/history/download?id=${id}`
   }
 
   useEffect(() => {
@@ -173,7 +159,7 @@ export default function HistoriePage() {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             {it.status === 'succeeded' && it.url && (
                                 <button
-                                    onClick={() => handleDownload(it.url!, `${it.type}-${it.id}.${it.type === 'video' ? 'mp4' : 'png'}`)}
+                                    onClick={() => handleDownload(it.id)}
                                     style={{
                                         background: primary,
                                         color: '#FFFFFF',
