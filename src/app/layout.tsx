@@ -13,6 +13,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="cs" className={tomorrow.className} style={{ margin: 0, padding: 0, background: "#0A0A0A" }}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <style>{`
           * { box-sizing: border-box; }
           body { margin: 0; padding: 0; background: #0A0A0A; min-height: 100vh; }
