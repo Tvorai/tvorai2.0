@@ -82,6 +82,118 @@ export default function HistoriePage() {
         padding: 24
       }}
     >
+      <style>{`
+        .history-card {
+          background: ${surface};
+          border-radius: 16px;
+          border: 1px solid #2A2A2A;
+          padding: 20px;
+          display: grid;
+          gap: 16px;
+        }
+        .history-card.has-preview {
+          grid-template-columns: 200px 1fr;
+        }
+        .history-preview {
+          width: 200px;
+          height: 200px;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .history-preview.empty {
+          background: #111;
+          color: #666;
+        }
+        .history-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-width: 0;
+        }
+        .history-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .history-title {
+          font-weight: 800;
+          font-size: 18px;
+          margin-bottom: 4px;
+        }
+        .history-prompt {
+          font-size: 14px;
+          color: #FFFFFF;
+          margin-bottom: 4px;
+          opacity: 0.9;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        .history-id {
+          font-size: 12px;
+          opacity: 0.4;
+          font-family: monospace;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .history-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .history-download {
+          background: ${primary};
+          color: #FFFFFF;
+          border: none;
+          border-radius: 12px;
+          padding: 8px 16px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+        }
+        .history-date {
+          font-size: 14px;
+          color: #9CA3AF;
+          margin-bottom: 8px;
+        }
+        @media (max-width: 700px) {
+          .history-card,
+          .history-card.has-preview {
+            grid-template-columns: 1fr;
+            padding: 16px;
+          }
+          .history-preview {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+          }
+          .history-top {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .history-actions {
+            justify-content: space-between;
+          }
+          .history-download {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Historie</h1>
@@ -98,27 +210,10 @@ export default function HistoriePage() {
               return (
                 <div
                   key={it.id}
-                  style={{
-                    background: surface,
-                    borderRadius: 16,
-                    border: '1px solid #2A2A2A',
-                    padding: 20,
-                    display: 'grid',
-                    gap: 16,
-                    gridTemplateColumns: outputUrl ? '200px 1fr' : '1fr'
-                  }}
+                  className={`history-card${outputUrl ? ' has-preview' : ''}`}
                 >
                   {outputUrl ? (
-                    <div style={{ 
-                      width: 200, 
-                      height: 200, 
-                      borderRadius: 12, 
-                      overflow: 'hidden', 
-                      background: '#000',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
+                    <div className="history-preview">
                       {it.type === 'video' ? (
                          <video 
                            src={outputUrl} 
@@ -135,43 +230,31 @@ export default function HistoriePage() {
                       )}
                     </div>
                   ) : (
-                    <div style={{ width: 200, height: 200, borderRadius: 12, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                    <div className="history-preview empty">
                       Bez náhledu
                     </div>
                   )}
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div>
-                            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
+                  <div className="history-content">
+                    <div className="history-top">
+                        <div style={{ minWidth: 0 }}>
+                            <div className="history-title">
                                 {it.type === 'image' ? 'Obrázek z textu' : 
                                  it.type === 'video' ? 'Video' : 
                                  it.type === 'faceswap' ? 'Výměna tváří' : it.type}
                             </div>
-                            <div style={{ fontSize: 14, color: '#FFFFFF', marginBottom: 4, opacity: 0.9 }}>
+                            <div className="history-prompt">
                                 {it.prompt || 'Bez popisu'}
                             </div>
-                            <div style={{ fontSize: 12, opacity: 0.4, fontFamily: 'monospace' }}>
+                            <div className="history-id">
                                 {it.id}
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div className="history-actions">
                             {it.status === 'succeeded' && it.url && (
                                 <button
                                     onClick={() => handleDownload(it.url!)}
-                                    style={{
-                                        background: primary,
-                                        color: '#FFFFFF',
-                                        border: 'none',
-                                        borderRadius: 12,
-                                        padding: '8px 16px',
-                                        fontSize: 14,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6
-                                    }}
+                                    className="history-download"
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
@@ -196,7 +279,7 @@ export default function HistoriePage() {
                         </div>
                     </div>
                     
-                    <div style={{ fontSize: 14, color: '#9CA3AF', marginBottom: 8 }}>
+                    <div className="history-date">
                         {new Date(it.created_at).toLocaleString('cs-CZ')}
                     </div>
                     
