@@ -22,6 +22,7 @@ type Item = {
   prompt?: string
   assets: Asset[]
   url?: string
+  thumbnail_url?: string
 }
 
 export default function HistoriePage() {
@@ -34,6 +35,14 @@ export default function HistoriePage() {
 
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
+
+  const isVideo = (it: Item) => {
+    const t = (it.type || "").toLowerCase()
+    if (["video", "t2v", "i2v", "text_to_video", "image_to_video"].includes(t)) return true
+    const u = (it.url || "").toLowerCase()
+    if (u.endsWith(".mp4") || u.includes("video")) return true
+    return false
+  }
 
   const handleDownload = (url: string) => {
     window.open(url, '_blank')
@@ -214,10 +223,12 @@ export default function HistoriePage() {
                 >
                   {outputUrl ? (
                     <div className="history-preview">
-                      {it.type === 'video' ? (
-                         <video 
-                           src={outputUrl} 
-                           controls 
+                      {isVideo(it) ? (
+                         <video
+                           src={outputUrl}
+                           poster={it.thumbnail_url || undefined}
+                           controls
+                           preload="metadata"
                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                          />
                       ) : (
