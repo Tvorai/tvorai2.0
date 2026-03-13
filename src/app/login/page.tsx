@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 
@@ -8,12 +8,33 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [showResend, setShowResend] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("tvorai_remembered_email")
+      if (saved) {
+        setEmail(saved)
+        setRememberMe(true)
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    try {
+      if (rememberMe) {
+        if (email.trim()) localStorage.setItem("tvorai_remembered_email", email.trim())
+      } else {
+        localStorage.removeItem("tvorai_remembered_email")
+      }
+    } catch {}
+  }, [rememberMe, email])
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -155,6 +176,15 @@ export default function LoginPage() {
                 fontWeight: 500,
               }}
             />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-start" }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: primary }}
+              />
+              <span style={{ fontWeight: 600, color: white, fontSize: 14 }}>Zapamätať si ma</span>
+            </label>
             <button
               type="submit"
               disabled={loading}
