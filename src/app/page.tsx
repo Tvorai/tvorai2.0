@@ -19,6 +19,7 @@ export default function AppPage() {
   const [prompt, setPrompt] = useState("")
   const [aspect, setAspect] = useState("1:1_2048")
   const [duration, setDuration] = useState("5")
+  const [videoRatio, setVideoRatio] = useState("16:9")
   const [swapSrc, setSwapSrc] = useState<File | null>(null)
   const [swapDst, setSwapDst] = useState<File | null>(null)
   const [imageInput, setImageInput] = useState<File | null>(null)
@@ -160,6 +161,7 @@ export default function AppPage() {
         fd.append("image", imageInput)
         fd.append("prompt", prompt)
         fd.append("duration", duration)
+        fd.append("ratio", videoRatio)
         if (userId) fd.append("userId", userId)
 
         const res = await fetch("/api/novita/i2v", {
@@ -188,7 +190,7 @@ export default function AppPage() {
         const res = await fetch("/api/novita/t2v", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, duration, userId })
+          body: JSON.stringify({ prompt, duration, userId, ratio: videoRatio })
         })
         const data = await res.json()
         if (!res.ok) {
@@ -513,6 +515,22 @@ export default function AppPage() {
               <option value="5">5</option>
               <option value="10">10</option>
             </select>
+            <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Poměr stran:</div>
+            <select
+              value={videoRatio}
+              onChange={(e) => setVideoRatio(e.target.value)}
+              style={{
+                background: surface,
+                color: text,
+                border: "1px solid #2A2A2A",
+                borderRadius: 12,
+                padding: "10px 12px"
+              }}
+            >
+              <option value="1:1">1:1</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+            </select>
             </>
           ) : null}
 
@@ -561,6 +579,22 @@ export default function AppPage() {
             >
               <option value="5">5</option>
               <option value="10">10</option>
+            </select>
+            <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Poměr stran:</div>
+            <select
+              value={videoRatio}
+              onChange={(e) => setVideoRatio(e.target.value)}
+              style={{
+                background: surface,
+                color: text,
+                border: "1px solid #2A2A2A",
+                borderRadius: 12,
+                padding: "10px 12px"
+              }}
+            >
+              <option value="1:1">1:1</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
             </select>
           </>
           ) : null}

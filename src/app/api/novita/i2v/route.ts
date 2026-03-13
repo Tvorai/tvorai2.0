@@ -26,9 +26,10 @@ export async function POST(req: NextRequest) {
   const image = formData.get("image")
   const prompt = (formData.get("prompt") as string || "").trim()
   const duration = parseInt((formData.get("duration") as string) || "5", 10)
+  const ratio = (formData.get("ratio") as string) || "16:9"
   const userId = formData.get("userId") as string
 
-  console.log("[Novita I2V] Params:", { prompt, duration, userId })
+  console.log("[Novita I2V] Params:", { prompt, duration, ratio, userId })
 
   if (!image || !(image instanceof File)) {
     return NextResponse.json({ error: "Missing image file" }, { status: 400 })
@@ -37,6 +38,11 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
 
   const cost = duration === 10 ? 72 : 36
+  const { width, height } = (() => {
+    if (ratio === "1:1") return { width: 640, height: 640 }
+    if (ratio === "9:16") return { width: 480, height: 832 }
+    return { width: 832, height: 480 }
+  })()
 
   // 1. Check credits
   const { data: profile, error: profileError } = await supabase
@@ -109,7 +115,7 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     // Initial job record (queued)
-    job = await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration, image_url: imageUrl }, cost)
+    job = await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration, ratio, width, height, image_url: imageUrl }, cost)
     if (job?.id) {
       console.log("[Novita I2V] Job created in DB:", job.id)
     }
@@ -129,8 +135,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         image_url: imageUrl,
         prompt,
-        width: 832,
-        height: 480, // Default resolution
+        width,
+        height,
         steps: 30, // Default
         seed: -1
       })
@@ -167,7 +173,6 @@ export async function POST(req: NextRequest) {
     if (job?.id) {
         const { error: updateError } = await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
-            task_id: taskId,
             status: "running"
         }).eq("id", job.id)
         

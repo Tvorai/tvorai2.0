@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     console.error("[Novita T2V] Missing NOVITA_API_KEY")
     return NextResponse.json({ error: "NOVITA_API_KEY is missing" }, { status: 500 })
   }
-  let body: { prompt?: string; duration?: number; userId?: string }
+  let body: { prompt?: string; duration?: number; ratio?: string; userId?: string }
   try {
     body = await req.json()
   } catch {
@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
   }
   const prompt = (body.prompt || "").trim()
   const duration = body.duration || 5
+  const ratio = body.ratio || "16:9"
   const userId = body.userId
   const cost = duration === 10 ? 40 : 25
 
-  console.log("[Novita T2V] Params:", { prompt, duration, userId, cost })
+  console.log("[Novita T2V] Params:", { prompt, duration, ratio, userId, cost })
 
   if (!prompt) {
     return NextResponse.json({ error: "Missing prompt" }, { status: 400 })
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 })
   }
+
+  const size = ratio === "1:1" ? "640*640" : ratio === "9:16" ? "480*832" : "832*480"
 
   // 1. Check credits
   const { data: profile, error: profileError } = await supabase
@@ -78,7 +81,7 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     // Initial job record (queued)
-    job = await createJob(supabase, userId, "video", "wan-2.2-t2v", { prompt, duration }, cost)
+    job = await createJob(supabase, userId, "video", "wan-2.2-t2v", { prompt, duration, ratio, size }, cost)
     if (job?.id) {
       console.log("[Novita T2V] Job created in DB:", job.id)
     }
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         input: { prompt },
         parameters: {
-          size: "832*480",
+          size,
           duration: duration === 10 ? 8 : 5 // Wan 2.2 supports 5 or 8
         }
       })
@@ -135,7 +138,6 @@ export async function POST(req: NextRequest) {
     if (job?.id) {
         const { error: updateError } = await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
-            task_id: taskId,
             status: "running"
         }).eq("id", job.id)
         
