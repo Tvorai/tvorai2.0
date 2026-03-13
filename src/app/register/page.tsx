@@ -188,12 +188,6 @@ export default function RegisterPage() {
           {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}
           
           <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-            <a
-              href="/forgot-password"
-              style={{ color: primary, textDecoration: "none", fontWeight: 600, fontSize: 14 }}
-            >
-              Zabudli ste heslo?
-            </a>
             {showResend && (
               <button
                 onClick={resendConfirmation}

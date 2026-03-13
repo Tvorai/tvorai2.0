@@ -24,11 +24,11 @@ export default function ForgotPasswordPage() {
     setLoading(false)
 
     if (error) {
-      setError(error.message || "Nepodarilo sa odoslať odkaz")
+      setError(error.message || "Nepodařilo se odeslat odkaz")
       return
     }
 
-    setInfo("Poslali sme odkaz na obnovenie hesla. Skontrolujte e‑mail.")
+    setInfo("Odeslali jsme odkaz na obnovu hesla. Zkontrolujte e‑mail.")
   }
 
   const primary = "#00C8D7"
@@ -115,14 +115,14 @@ export default function ForgotPasswordPage() {
                 textTransform: "uppercase",
               }}
             >
-              {loading ? "Odosielam…" : "Poslať odkaz na obnovenie hesla"}
+              {loading ? "Odesílám…" : "Poslat odkaz na obnovu hesla"}
             </button>
           </form>
           {error ? <p style={{ color: "#F87171", marginTop: 16, fontWeight: 600 }}>{error}</p> : null}
           {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}
           <div style={{ marginTop: 24 }}>
             <a href="/login" style={{ color: primary, textDecoration: "none", fontWeight: 800 }}>
-              Späť na prihlásenie
+              Zpět na přihlášení
             </a>
           </div>
         </div>

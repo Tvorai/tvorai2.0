@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [showResend, setShowResend] = useState(false)
-  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   useEffect(() => {
     try {
@@ -42,14 +41,12 @@ export default function LoginPage() {
     setError("")
     setInfo("")
     setShowResend(false)
-    setShowForgotPassword(false)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
       console.log("Login error:", error.message)
       if (error.message === "Invalid login credentials") {
         setError("Nesprávné přihlašovací údaje")
-        setShowForgotPassword(true)
       } else if (error.message === "Email not confirmed") {
         setError("E-mail není potvrzen")
         setShowResend(true)
@@ -183,8 +180,14 @@ export default function LoginPage() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 style={{ width: 18, height: 18, accentColor: primary }}
               />
-              <span style={{ fontWeight: 600, color: white, fontSize: 14 }}>Zapamätať si ma</span>
+              <span style={{ fontWeight: 600, color: white, fontSize: 14 }}>Zapamatovat si mě</span>
             </label>
+            <a
+              href="/forgot-password"
+              style={{ color: primary, textDecoration: "none", fontWeight: 600, fontSize: 14, textAlign: "left" }}
+            >
+              Zapomněli jste heslo?
+            </a>
             <button
               type="submit"
               disabled={loading}
@@ -225,11 +228,6 @@ export default function LoginPage() {
               >
                 {cooldown > 0 ? `Zaslat znovu (${cooldown}s)` : "Zaslat potvrzovací e‑mail znovu"}
               </button>
-            )}
-            {showForgotPassword && (
-              <p style={{ color: primary, margin: 0, fontWeight: 600, cursor: "pointer" }}>
-                Zapomněli jste heslo?
-              </p>
             )}
             <p style={{ fontWeight: 600, fontSize: 16 }}>
               <span style={{ opacity: 0.7 }}>Nemáte účet?</span>{" "}

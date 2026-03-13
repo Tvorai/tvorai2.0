@@ -20,7 +20,7 @@ export default function UpdatePasswordPage() {
       if (canceled) return
       setReady(true)
       if (!data.session) {
-        setError("Odkaz na obnovenie hesla je neplatný alebo expiroval. Skúste to znova.")
+        setError("Odkaz na obnovu hesla je neplatný nebo vypršel. Zkuste to znovu.")
       }
     })
     return () => {
@@ -34,11 +34,11 @@ export default function UpdatePasswordPage() {
     setInfo("")
 
     if (!password || password.length < 6) {
-      setError("Heslo musí mať aspoň 6 znakov.")
+      setError("Heslo musí mít alespoň 6 znaků.")
       return
     }
     if (password !== confirm) {
-      setError("Heslá sa nezhodujú.")
+      setError("Hesla se neshodují.")
       return
     }
 
@@ -47,11 +47,11 @@ export default function UpdatePasswordPage() {
     setLoading(false)
 
     if (error) {
-      setError(error.message || "Nepodarilo sa zmeniť heslo")
+      setError(error.message || "Nepodařilo se změnit heslo")
       return
     }
 
-    setInfo("Heslo bolo zmenené. Presmerovávam na prihlásenie…")
+    setInfo("Heslo bylo změněno. Přesměrovávám na přihlášení…")
     setTimeout(() => router.push("/login"), 1500)
   }
 
@@ -105,7 +105,7 @@ export default function UpdatePasswordPage() {
           </h1>
 
           {!ready ? (
-            <div>Načítanie…</div>
+            <div>Načítání…</div>
           ) : (
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
               <input
@@ -128,7 +128,7 @@ export default function UpdatePasswordPage() {
               />
               <input
                 type="password"
-                placeholder="Potvrdiť heslo"
+                placeholder="Potvrdit heslo"
                 value={confirm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirm(e.target.value)}
                 required
@@ -162,7 +162,7 @@ export default function UpdatePasswordPage() {
                   opacity: loading || !!error ? 0.8 : 1,
                 }}
               >
-                {loading ? "Ukladám…" : "Nastaviť nové heslo"}
+                {loading ? "Ukládám…" : "Nastavit nové heslo"}
               </button>
             </form>
           )}
@@ -171,7 +171,7 @@ export default function UpdatePasswordPage() {
           {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}
           <div style={{ marginTop: 24 }}>
             <a href="/login" style={{ color: primary, textDecoration: "none", fontWeight: 800 }}>
-              Späť na prihlásenie
+              Zpět na přihlášení
             </a>
           </div>
         </div>
@@ -188,4 +188,3 @@ export default function UpdatePasswordPage() {
     </div>
   )
 }
-
