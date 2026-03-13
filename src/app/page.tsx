@@ -500,37 +500,51 @@ export default function AppPage() {
                 />
               </div>
               
-              <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Délka videa (s):</div>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+              <div
                 style={{
-                  background: surface,
-                  color: text,
-                  border: "1px solid #2A2A2A",
-                  borderRadius: 12,
-                  padding: "10px 12px"
-              }}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-            </select>
-            <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Poměr stran:</div>
-            <select
-              value={videoRatio}
-              onChange={(e) => setVideoRatio(e.target.value)}
-              style={{
-                background: surface,
-                color: text,
-                border: "1px solid #2A2A2A",
-                borderRadius: 12,
-                padding: "10px 12px"
-              }}
-            >
-              <option value="1:1">1:1</option>
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-            </select>
+                  display: "flex",
+                  gap: 16,
+                  flexWrap: "wrap",
+                  alignItems: "flex-end",
+                  marginTop: 12
+                }}
+              >
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 700 }}>Délka videa (s):</div>
+                  <select
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    style={{
+                      background: surface,
+                      color: text,
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 12,
+                      padding: "10px 12px"
+                    }}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                  </select>
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 700 }}>Poměr stran:</div>
+                  <select
+                    value={videoRatio}
+                    onChange={(e) => setVideoRatio(e.target.value)}
+                    style={{
+                      background: surface,
+                      color: text,
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 12,
+                      padding: "10px 12px"
+                    }}
+                  >
+                    <option value="1:1">1:1</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                  </select>
+                </div>
+              </div>
             </>
           ) : null}
 
@@ -565,37 +579,51 @@ export default function AppPage() {
                   }}
                 />
               </div>
-              <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Délka videa (s):</div>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+              <div
                 style={{
-                  background: surface,
-                  color: text,
-                  border: "1px solid #2A2A2A",
-                  borderRadius: 12,
-                  padding: "10px 12px"
-              }}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-            </select>
-            <div style={{ fontWeight: 700, margin: "12px 0 6px" }}>Poměr stran:</div>
-            <select
-              value={videoRatio}
-              onChange={(e) => setVideoRatio(e.target.value)}
-              style={{
-                background: surface,
-                color: text,
-                border: "1px solid #2A2A2A",
-                borderRadius: 12,
-                padding: "10px 12px"
-              }}
-            >
-              <option value="1:1">1:1</option>
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-            </select>
+                  display: "flex",
+                  gap: 16,
+                  flexWrap: "wrap",
+                  alignItems: "flex-end",
+                  marginTop: 12
+                }}
+              >
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 700 }}>Délka videa (s):</div>
+                  <select
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    style={{
+                      background: surface,
+                      color: text,
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 12,
+                      padding: "10px 12px"
+                    }}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                  </select>
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 700 }}>Poměr stran:</div>
+                  <select
+                    value={videoRatio}
+                    onChange={(e) => setVideoRatio(e.target.value)}
+                    style={{
+                      background: surface,
+                      color: text,
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 12,
+                      padding: "10px 12px"
+                    }}
+                  >
+                    <option value="1:1">1:1</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                  </select>
+                </div>
+              </div>
           </>
           ) : null}
         </section>
