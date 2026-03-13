@@ -24,16 +24,34 @@ export async function POST(req: NextRequest) {
     console.error("[Novita MergeFace] Missing NOVITA_API_KEY")
     return NextResponse.json({ error: "NOVITA_API_KEY is missing" }, { status: 500 })
   }
-  let body: { face?: string; target?: string; userId?: string }
-  try {
-    body = await req.json()
-  } catch {
-    console.error("[Novita MergeFace] Invalid JSON body")
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  let face: any
+  let target: any
+  let userId: string | null = null
+
+  const contentType = req.headers.get("content-type") || ""
+  if (contentType.includes("application/json")) {
+    let body: { face?: string; target?: string; userId?: string }
+    try {
+      body = await req.json()
+    } catch {
+      console.error("[Novita MergeFace] Invalid JSON body")
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    }
+    face = body.face
+    target = body.target
+    userId = body.userId ?? null
+  } else {
+    let formData: FormData
+    try {
+      formData = await req.formData()
+    } catch {
+      console.error("[Novita MergeFace] Invalid form data")
+      return NextResponse.json({ error: "Invalid form data" }, { status: 400 })
+    }
+    face = formData.get("face")
+    target = formData.get("target")
+    userId = (formData.get("userId") as string | null) ?? null
   }
-  const face = body.face
-  const target = body.target
-  const userId = body.userId
 
   console.log("[Novita MergeFace] Params:", { userId })
 
@@ -153,7 +171,6 @@ export async function POST(req: NextRequest) {
         console.log("[Novita MergeFace] Async task detected, updating status to running. TaskID:", taskId)
         await supabase.from("generation_jobs").update({ 
             provider_job_id: taskId,
-            task_id: taskId,
             status: "running"
         }).eq("id", job.id)
         return NextResponse.json({ taskId })
