@@ -135,16 +135,16 @@ export default function AccountPage() {
       <style>{`
         .account-grid {
           width: 100%;
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 520px 1fr;
-          gap: 48px;
+          grid-template-columns: 1fr 1fr;
+          gap: 100px;
           align-items: start;
         }
         .account-feedback {
           padding-top: 64px;
-          max-width: 560px;
+          width: 100%;
         }
         .account-feedback-text {
           text-align: center;
@@ -182,29 +182,28 @@ export default function AccountPage() {
           }
           .account-feedback {
             padding-top: 0;
-            max-width: 760px;
           }
           .account-feedback-actions {
-            justify-content: flex-start;
+            justify-content: center;
           }
           .account-feedback-btn {
             width: 100%;
             min-width: 0;
           }
           .account-feedback-text {
-            text-align: left;
+            text-align: center;
           }
         }
       `}</style>
 
       <div className="account-grid">
         <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Účet</h1>
         </div>
 
-        {error ? <div style={{ color: "#F87171", marginBottom: 12 }}>{error}</div> : null}
-        {info ? <div style={{ color: primary, marginBottom: 12 }}>{info}</div> : null}
+        {error ? <div style={{ color: "#F87171", marginBottom: 12, textAlign: "center" }}>{error}</div> : null}
+        {info ? <div style={{ color: primary, marginBottom: 12, textAlign: "center" }}>{info}</div> : null}
 
         <section
           style={{
@@ -212,12 +211,13 @@ export default function AccountPage() {
             borderRadius: 16,
             padding: 16,
             border: "1px solid #2A2A2A",
-            marginBottom: 16
+            marginBottom: 16,
+            textAlign: "center"
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Základní údaje</div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <label style={{ display: "grid", gap: 6 }}>
+          <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+            <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>E‑mail</span>
               <input
                 type="email"
@@ -228,7 +228,8 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px"
+                  padding: "12px 14px",
+                  textAlign: "center"
                 }}
               />
             </label>
@@ -236,7 +237,7 @@ export default function AccountPage() {
               onClick={saveEmail}
               disabled={savingEmail || !email}
               style={{
-                justifySelf: "start",
+                justifySelf: "center",
                 background: primary,
                 color: text,
                 border: "none",
@@ -249,7 +250,7 @@ export default function AccountPage() {
               {savingEmail ? "Ukládám…" : "Uložit e‑mail"}
             </button>
 
-            <label style={{ display: "grid", gap: 6 }}>
+            <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>Jméno</span>
               <input
                 type="text"
@@ -261,7 +262,8 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px"
+                  padding: "12px 14px",
+                  textAlign: "center"
                 }}
               />
             </label>
@@ -269,7 +271,7 @@ export default function AccountPage() {
               onClick={saveName}
               disabled={savingName}
               style={{
-                justifySelf: "start",
+                justifySelf: "center",
                 background: primary,
                 color: text,
                 border: "none",
@@ -290,7 +292,8 @@ export default function AccountPage() {
             borderRadius: 16,
             padding: 16,
             border: "1px solid #2A2A2A",
-            marginBottom: 16
+            marginBottom: 16,
+            textAlign: "center"
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Predplatné</div>
@@ -298,10 +301,10 @@ export default function AccountPage() {
           {loadingSub ? (
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
           ) : (
-            <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
               {subscription ? (
                 <>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%" }}>
                     <div>
                       <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>Typ plánu</div>
                       <div style={{ fontWeight: 600 }}>
@@ -350,7 +353,7 @@ export default function AccountPage() {
                     </div>
                   </div>
 
-                  <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4 }}>
+                  <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 12, marginTop: 4, width: "100%" }}>
                     <div style={{ fontSize: 10, color: "#4B5563", fontFamily: "monospace" }}>
                       CID: {profile?.stripe_customer_id || '—'}
                     </div>
@@ -384,7 +387,7 @@ export default function AccountPage() {
                   }
                 }}
                 style={{
-                  justifySelf: "start",
+                  justifySelf: "center",
                   background: primary,
                   color: text,
                   border: "none",
@@ -406,12 +409,13 @@ export default function AccountPage() {
             background: surface,
             borderRadius: 16,
             padding: 16,
-            border: "1px solid #2A2A2A"
+            border: "1px solid #2A2A2A",
+            textAlign: "center"
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Změna hesla</div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <label style={{ display: "grid", gap: 6 }}>
+          <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+            <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>Nové heslo</span>
               <input
                 type="password"
@@ -422,11 +426,12 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px"
+                  padding: "12px 14px",
+                  textAlign: "center"
                 }}
               />
             </label>
-            <label style={{ display: "grid", gap: 6 }}>
+            <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>Potvrzení hesla</span>
               <input
                 type="password"
@@ -437,7 +442,8 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px"
+                  padding: "12px 14px",
+                  textAlign: "center"
                 }}
               />
             </label>
@@ -445,7 +451,7 @@ export default function AccountPage() {
               onClick={savePassword}
               disabled={savingPass || !pass1 || !pass2}
               style={{
-                justifySelf: "start",
+                justifySelf: "center",
                 background: primary,
                 color: text,
                 border: "none",
