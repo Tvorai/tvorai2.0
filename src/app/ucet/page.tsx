@@ -132,7 +132,73 @@ export default function AccountPage() {
         padding: 24
       }}
     >
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <style>{`
+        .account-grid {
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 520px 1fr;
+          gap: 48px;
+          align-items: start;
+        }
+        .account-feedback {
+          padding-top: 64px;
+          max-width: 560px;
+        }
+        .account-feedback-text {
+          text-align: center;
+          font-weight: 600;
+          line-height: 1.55;
+          color: #E5E7EB;
+          margin: 0;
+        }
+        .account-feedback-actions {
+          display: flex;
+          gap: 16px;
+          justify-content: center;
+          flex-wrap: wrap;
+          margin-top: 18px;
+        }
+        .account-feedback-btn {
+          background: ${primary};
+          color: #000000;
+          border: none;
+          border-radius: 12px;
+          padding: 12px 18px;
+          font-weight: 900;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 220px;
+          white-space: nowrap;
+        }
+        @media (max-width: 1020px) {
+          .account-grid {
+            grid-template-columns: 1fr;
+            gap: 28px;
+          }
+          .account-feedback {
+            padding-top: 0;
+            max-width: 760px;
+          }
+          .account-feedback-actions {
+            justify-content: flex-start;
+          }
+          .account-feedback-btn {
+            width: 100%;
+            min-width: 0;
+          }
+          .account-feedback-text {
+            text-align: left;
+          }
+        }
+      `}</style>
+
+      <div className="account-grid">
+        <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Účet</h1>
         </div>
@@ -393,6 +459,37 @@ export default function AccountPage() {
             </button>
           </div>
         </section>
+      </div>
+        <div className="account-feedback">
+          <p className="account-feedback-text">
+            Jsme rádi, že jste si pro tvorbu obsahu pomocí AI vybrali TvorAI. Jsme nová firma a chceme se každý den
+            posouvat vpřed a zlepšovat, abychom vám přinesli co nejlepší zážitek. Budeme rádi za zpětnou vazbu – co se
+            vám líbí/nelíbí a co zlepšit nebo změnit.
+            <br />
+            <br />
+            Děkujeme,
+            <br />
+            <span style={{ fontWeight: 900, fontStyle: "italic", color: "#FFFFFF" }}>Tým TvorAI</span>
+          </p>
+          <div className="account-feedback-actions">
+            <a
+              className="account-feedback-btn"
+              href="https://www.tvorai.cz/napsat-recenzi"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Napsat recenzi
+            </a>
+            <a
+              className="account-feedback-btn"
+              href="https://www.tvorai.cz/podpora/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Nahlásit chybu/ Myšlenka na změny
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )
