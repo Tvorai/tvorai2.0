@@ -161,7 +161,7 @@ export default function AccountPage() {
         }
         .account-feedback-btn {
           background: ${primary};
-          color: #000000;
+          color: #FFFFFF;
           border: none;
           border-radius: 12px;
           padding: 12px 18px;
