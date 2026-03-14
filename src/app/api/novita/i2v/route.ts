@@ -1,11 +1,45 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { createJob, failJob } from "@/lib/storage-utils"
+import { createJob, failJob, getSignedUrlForAsset, uploadToS3 } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 )
+
+function parseMissingColumn(error: any): string | null {
+  const message = typeof error?.message === "string" ? error.message : ""
+  const match = message.match(/Could not find the '([^']+)' column/)
+  return match?.[1] ?? null
+}
+
+async function safeUpdateJobById(id: string, patch: Record<string, any>) {
+  const maxRetries = 25
+  let currentPatch = { ...patch }
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const { error } = await supabase.from("generation_jobs").update(currentPatch).eq("id", id)
+    if (!error) return
+    const missing = parseMissingColumn(error)
+    if (missing && Object.prototype.hasOwnProperty.call(currentPatch, missing)) {
+      const { [missing]: _omit, ...rest } = currentPatch
+      currentPatch = rest
+      continue
+    }
+    throw error
+  }
+}
+
+function extFromFile(file: File): string {
+  const name = (file.name || "").toLowerCase()
+  const parts = name.split(".")
+  const ext = parts.length > 1 ? parts[parts.length - 1] : ""
+  if (ext) return ext
+  const mime = (file.type || "").toLowerCase()
+  if (mime.includes("png")) return "png"
+  if (mime.includes("webp")) return "webp"
+  if (mime.includes("gif")) return "gif"
+  return "jpg"
+}
 
 export async function POST(req: NextRequest) {
   const key = process.env.NOVITA_API_KEY
@@ -61,35 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
   }
 
-  // 2. Upload image to Supabase Storage
-  const fileExt = image.name.split('.').pop()
-  const fileName = `i2v/${userId}/${Date.now()}.${fileExt}`
-  const { data: uploadData, error: uploadError } = await supabase
-    .storage
-    .from('generations')
-    .upload(fileName, image, {
-      contentType: image.type,
-      upsert: false
-    })
-
-  if (uploadError) {
-    console.error("[Novita I2V] Upload error:", uploadError)
-    return NextResponse.json({ error: "Failed to upload image" }, { status: 500 })
-  }
-
-  const { data: signedUrlData, error: signedUrlError } = await supabase
-    .storage
-    .from('generations')
-    .createSignedUrl(fileName, 3600)
-
-  if (signedUrlError || !signedUrlData?.signedUrl) {
-    console.error("[Novita I2V] Signed URL error:", signedUrlError)
-    return NextResponse.json({ error: "Failed to get image URL" }, { status: 500 })
-  }
-
-  const imageUrl = signedUrlData.signedUrl
-
-  // 3. Deduct credits
+  // 2. Deduct credits
   const newBalance = (profile.credits || 0) - cost
   const { error: updateError } = await supabase
     .from("profiles")
@@ -101,7 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to update credits" }, { status: 500 })
   }
 
-  // 4. Log transaction
+  // 3. Log transaction
   supabase.from("credit_transactions").insert({
     user_id: userId,
     type: "video_generation",
@@ -113,9 +119,10 @@ export async function POST(req: NextRequest) {
   })
 
   let job: any
+  let imageUrl: string | null = null
   try {
     // Initial job record (queued)
-    job = await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration, ratio, width, height, image_url: imageUrl }, cost)
+    job = await createJob(supabase, userId, "video", "wan-i2v", { prompt, duration, ratio, width, height }, cost)
     if (job?.id) {
       console.log("[Novita I2V] Job created in DB:", job.id)
     }
@@ -124,6 +131,38 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (!job?.id) {
+      throw new Error("Job not created")
+    }
+
+    const ext = extFromFile(image)
+    const inputKey = `inputs/${userId}/${job.id}.${ext}`
+    const contentType = image.type || "image/jpeg"
+    const buffer = Buffer.from(await image.arrayBuffer())
+
+    await uploadToS3(buffer, inputKey, contentType)
+    imageUrl = await getSignedUrlForAsset(inputKey)
+
+    try {
+      await safeUpdateJobById(job.id, {
+        image_url: imageUrl,
+        prompt,
+        status: "queued",
+        input_json: {
+          ...(job.input_json || {}),
+          prompt,
+          duration,
+          ratio,
+          width,
+          height,
+          image_url: imageUrl,
+          input_s3_key: inputKey,
+        },
+      })
+    } catch (e) {
+      console.error("[Novita I2V] Failed to update job with input url", e)
+    }
+
     console.log("[Novita I2V] Calling Wan I2V API...")
     // Novita Wan 2.1 I2V
     const res = await fetch("https://api.novita.ai/v3/async/wan-i2v", {
@@ -171,16 +210,16 @@ export async function POST(req: NextRequest) {
 
     // 5. Update Job Record with task_id and status running
     if (job?.id) {
-        const { error: updateError } = await supabase.from("generation_jobs").update({ 
-            provider_job_id: taskId,
-            status: "running"
-        }).eq("id", job.id)
-        
-        if (updateError) {
-          console.error("[Novita I2V] Failed to update job with taskId:", updateError)
-        } else {
-          console.log("[Novita I2V] Job updated with taskId:", taskId, "status: running")
-        }
+      try {
+        await safeUpdateJobById(job.id, {
+          provider_job_id: taskId,
+          task_id: taskId,
+          status: "running",
+        })
+        console.log("[Novita I2V] Job updated with taskId:", taskId, "status: running")
+      } catch (e) {
+        console.error("[Novita I2V] Failed to update job with taskId:", e)
+      }
     }
 
     return NextResponse.json({ taskId })
