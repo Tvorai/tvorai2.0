@@ -147,7 +147,7 @@ export default function AccountPage() {
           width: 100%;
         }
         .account-feedback-text {
-          text-align: left;
+          text-align: center;
           font-weight: 600;
           line-height: 1.55;
           color: #E5E7EB;
@@ -156,7 +156,7 @@ export default function AccountPage() {
         .account-feedback-actions {
           display: flex;
           gap: 16px;
-          justify-content: flex-start;
+          justify-content: center;
           flex-wrap: wrap;
           margin-top: 18px;
         }
@@ -184,14 +184,14 @@ export default function AccountPage() {
             padding-top: 0;
           }
           .account-feedback-actions {
-            justify-content: flex-start;
+            justify-content: center;
           }
           .account-feedback-btn {
             width: 100%;
             min-width: 0;
           }
           .account-feedback-text {
-            text-align: left;
+            text-align: center;
           }
         }
       `}</style>
