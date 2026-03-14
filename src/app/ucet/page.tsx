@@ -135,10 +135,10 @@ export default function AccountPage() {
       <style>{`
         .account-grid {
           width: 100%;
-          max-width: 1400px;
+          max-width: 100%;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr 1.2fr;
           gap: 100px;
           align-items: start;
         }
@@ -147,7 +147,7 @@ export default function AccountPage() {
           width: 100%;
         }
         .account-feedback-text {
-          text-align: center;
+          text-align: left;
           font-weight: 600;
           line-height: 1.55;
           color: #E5E7EB;
@@ -156,7 +156,7 @@ export default function AccountPage() {
         .account-feedback-actions {
           display: flex;
           gap: 16px;
-          justify-content: center;
+          justify-content: flex-start;
           flex-wrap: wrap;
           margin-top: 18px;
         }
@@ -184,26 +184,26 @@ export default function AccountPage() {
             padding-top: 0;
           }
           .account-feedback-actions {
-            justify-content: center;
+            justify-content: flex-start;
           }
           .account-feedback-btn {
             width: 100%;
             min-width: 0;
           }
           .account-feedback-text {
-            text-align: center;
+            text-align: left;
           }
         }
       `}</style>
 
       <div className="account-grid">
         <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", marginBottom: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>Účet</h1>
         </div>
 
-        {error ? <div style={{ color: "#F87171", marginBottom: 12, textAlign: "center" }}>{error}</div> : null}
-        {info ? <div style={{ color: primary, marginBottom: 12, textAlign: "center" }}>{info}</div> : null}
+        {error ? <div style={{ color: "#F87171", marginBottom: 12 }}>{error}</div> : null}
+        {info ? <div style={{ color: primary, marginBottom: 12 }}>{info}</div> : null}
 
         <section
           style={{
@@ -211,12 +211,11 @@ export default function AccountPage() {
             borderRadius: 16,
             padding: 16,
             border: "1px solid #2A2A2A",
-            marginBottom: 16,
-            textAlign: "center"
+            marginBottom: 16
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Základní údaje</div>
-          <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+          <div style={{ display: "grid", gap: 12 }}>
             <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>E‑mail</span>
               <input
@@ -228,8 +227,7 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px",
-                  textAlign: "center"
+                  padding: "12px 14px"
                 }}
               />
             </label>
@@ -237,7 +235,7 @@ export default function AccountPage() {
               onClick={saveEmail}
               disabled={savingEmail || !email}
               style={{
-                justifySelf: "center",
+                justifySelf: "start",
                 background: primary,
                 color: text,
                 border: "none",
@@ -262,8 +260,7 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px",
-                  textAlign: "center"
+                  padding: "12px 14px"
                 }}
               />
             </label>
@@ -271,7 +268,7 @@ export default function AccountPage() {
               onClick={saveName}
               disabled={savingName}
               style={{
-                justifySelf: "center",
+                justifySelf: "start",
                 background: primary,
                 color: text,
                 border: "none",
@@ -292,8 +289,7 @@ export default function AccountPage() {
             borderRadius: 16,
             padding: 16,
             border: "1px solid #2A2A2A",
-            marginBottom: 16,
-            textAlign: "center"
+            marginBottom: 16
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Predplatné</div>
@@ -301,7 +297,7 @@ export default function AccountPage() {
           {loadingSub ? (
             <div style={{ color: "#9CA3AF" }}>Načítavam...</div>
           ) : (
-            <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+            <div style={{ display: "grid", gap: 12 }}>
               {subscription ? (
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%" }}>
@@ -387,7 +383,7 @@ export default function AccountPage() {
                   }
                 }}
                 style={{
-                  justifySelf: "center",
+                  justifySelf: "start",
                   background: primary,
                   color: text,
                   border: "none",
@@ -409,12 +405,11 @@ export default function AccountPage() {
             background: surface,
             borderRadius: 16,
             padding: 16,
-            border: "1px solid #2A2A2A",
-            textAlign: "center"
+            border: "1px solid #2A2A2A"
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 12 }}>Změna hesla</div>
-          <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+          <div style={{ display: "grid", gap: 12 }}>
             <label style={{ display: "grid", gap: 6, width: "100%" }}>
               <span>Nové heslo</span>
               <input
@@ -426,8 +421,7 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px",
-                  textAlign: "center"
+                  padding: "12px 14px"
                 }}
               />
             </label>
@@ -442,8 +436,7 @@ export default function AccountPage() {
                   color: "#111827",
                   border: "none",
                   borderRadius: 10,
-                  padding: "12px 14px",
-                  textAlign: "center"
+                  padding: "12px 14px"
                 }}
               />
             </label>
@@ -451,7 +444,7 @@ export default function AccountPage() {
               onClick={savePassword}
               disabled={savingPass || !pass1 || !pass2}
               style={{
-                justifySelf: "center",
+                justifySelf: "start",
                 background: primary,
                 color: text,
                 border: "none",
