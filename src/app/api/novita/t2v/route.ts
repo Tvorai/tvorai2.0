@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const duration = body.duration || 5
   const ratio = body.ratio || "16:9"
   const userId = body.userId
-  const cost = duration === 10 ? 40 : 25
+  const cost = duration === 10 ? 72 : 36
 
   console.log("[Novita T2V] Params:", { prompt, duration, ratio, userId, cost })
 
