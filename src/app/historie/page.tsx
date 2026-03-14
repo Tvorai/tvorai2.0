@@ -146,14 +146,6 @@ export default function HistoriePage() {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
         }
-        .history-id {
-          font-size: 12px;
-          opacity: 0.4;
-          font-family: monospace;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
         .history-actions {
           display: flex;
           gap: 8px;
@@ -256,9 +248,6 @@ export default function HistoriePage() {
                             </div>
                             <div className="history-prompt">
                                 {it.prompt || 'Bez popisu'}
-                            </div>
-                            <div className="history-id">
-                                {it.id}
                             </div>
                         </div>
                         <div className="history-actions">
