@@ -140,10 +140,9 @@ export default function AccountPage() {
           display: grid;
           grid-template-columns: 1fr 1.2fr;
           gap: 100px;
-          align-items: start;
+          align-items: center;
         }
         .account-feedback {
-          padding-top: 64px;
           width: 100%;
         }
         .account-feedback-text {
