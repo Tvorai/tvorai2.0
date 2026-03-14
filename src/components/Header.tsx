@@ -31,15 +31,25 @@ export default function Header() {
           if (!error && data) setCredits(Number(data.credits) || 0)
           else setCredits(0)
         }
+      } else {
+        if (!canceled) {
+          setUser(null)
+          setCredits(null)
+          setMenuOpen(false)
+        }
       }
     }
     load()
 
     const handleUpdate = () => load()
     window.addEventListener("credits-updated", handleUpdate)
+    const { data: authSub } = supabase.auth.onAuthStateChange(() => {
+      load()
+    })
 
     return () => {
       window.removeEventListener("credits-updated", handleUpdate)
+      authSub?.subscription?.unsubscribe()
       canceled = true
     }
   }, [])
