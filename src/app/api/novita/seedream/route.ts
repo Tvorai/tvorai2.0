@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
             task_id: taskId,
             status: "running"
         }).eq("id", job.id)
-        return NextResponse.json({ taskId })
+        return NextResponse.json({ taskId, jobId: job.id })
     }
 
     // 6. If it's sync (has url), upload to S3 and save asset
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    return NextResponse.json({ url: finalUrl })
+    return NextResponse.json({ url: finalUrl, jobId: job.id })
   } catch (e: any) {
     console.error("[Novita] Unexpected error:", e)
     // Refund on exception

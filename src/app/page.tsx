@@ -24,6 +24,7 @@ export default function AppPage() {
   const [swapDst, setSwapDst] = useState<File | null>(null)
   const [imageInput, setImageInput] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,6 +62,7 @@ export default function AppPage() {
   // Clear preview and errors when switching tabs
   useEffect(() => {
     setPreviewUrl(null)
+    setPreviewJobId(null)
     setActionError("")
   }, [tab])
 
@@ -120,6 +122,7 @@ export default function AppPage() {
           return
         }
         setPreviewUrl(data.url)
+        setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
       } catch (e: any) {
@@ -248,6 +251,10 @@ export default function AppPage() {
   async function handleDownload() {
     if (!previewUrl) return
     try {
+      if (tab === "t2i" && previewJobId) {
+        window.location.href = `/api/history/download?id=${encodeURIComponent(previewJobId)}`
+        return
+      }
       const response = await fetch(previewUrl)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -260,7 +267,6 @@ export default function AppPage() {
       document.body.removeChild(a)
     } catch (e) {
       console.error("Download failed", e)
-      window.open(previewUrl, "_blank")
     }
   }
 

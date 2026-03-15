@@ -44,8 +44,8 @@ export default function HistoriePage() {
     return false
   }
 
-  const handleDownload = (url: string) => {
-    window.open(url, '_blank')
+  const handleDownload = (jobId: string) => {
+    window.location.href = `/api/history/download?id=${encodeURIComponent(jobId)}`
   }
 
   useEffect(() => {
@@ -253,7 +253,7 @@ export default function HistoriePage() {
                         <div className="history-actions">
                             {it.status === 'succeeded' && it.url && (
                                 <button
-                                    onClick={() => handleDownload(it.url!)}
+                                    onClick={() => handleDownload(it.id)}
                                     className="history-download"
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
