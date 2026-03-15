@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 
@@ -8,74 +8,161 @@ export default function RegisterPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpCode, setOtpCode] = useState("")
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [sendingSms, setSendingSms] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [cooldown, setCooldown] = useState(0)
-  const [showResend, setShowResend] = useState(false)
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
+  function normalizePhone(input: string): string {
+    return input.replace(/\s+/g, "").trim()
+  }
+
+  function isValidE164(input: string): boolean {
+    return /^\+[1-9]\d{1,14}$/.test(input)
+  }
+
+  function isValidOtp(input: string): boolean {
+    return /^\d{6}$/.test(input)
+  }
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  async function sendVerificationCode() {
     setError("")
     setInfo("")
-    setShowResend(false)
-    const origin = typeof window !== "undefined" ? window.location.origin : undefined
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: origin ? `${origin}` : undefined
-      }
+    if (sendingSms) return
+    if (cooldown > 0) return
+
+    const normalizedPhone = normalizePhone(phoneNumber)
+    if (!normalizedPhone) {
+      setError("Zadejte telefonní číslo ve formátu +420...")
+      return
+    }
+    if (!isValidE164(normalizedPhone)) {
+      setError("Telefonní číslo musí být ve formátu E.164, např. +420123456789.")
+      return
+    }
+
+    setSendingSms(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: normalizedPhone,
     })
-    setLoading(false)
+    setSendingSms(false)
+
     if (error) {
       const msg = (error.message || "").toLowerCase()
       if (msg.includes("rate limit")) {
-        setError("Limit pro e‑maily vyčerpán. Zkuste to za 1–2 minuty.")
-      } else if (msg.includes("already registered")) {
-        setError("Uživatel již existuje. Přihlaste se nebo potvrďte e‑mail.")
-        setShowResend(true)
+        setError("Limit pro SMS vyčerpán. Zkuste to prosím za chvíli.")
       } else {
-        setError(error.message || "Registrace selhala")
+        setError(error.message || "Odeslání SMS selhalo")
       }
-    } else {
-      if (data?.user && !data.user.confirmed_at) {
-        setInfo("Registrace proběhla. Zkontrolujte e‑mail a potvrďte adresu.")
-        setShowResend(true)
-      } else {
-        router.push("/")
-      }
-    }
-  }
-
-  async function resendConfirmation() {
-    setError("")
-    setInfo("")
-    if (cooldown > 0) return
-    if (!email) {
-      setError("Zadejte e‑mail a zkuste znovu")
       return
     }
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email
+
+    setOtpSent(true)
+    setInfo("Ověřovací kód jsme poslali přes SMS. Zadejte 6místný kód.")
+    setCooldown(60)
+  }
+
+  async function verifyCodeAndFinish() {
+    setError("")
+    setInfo("")
+    if (verifying) return
+
+    const normalizedEmail = email.trim()
+    const normalizedPhone = normalizePhone(phoneNumber)
+    const normalizedOtp = otpCode.replace(/\s+/g, "").trim()
+
+    if (!normalizedEmail) {
+      setError("Zadejte e‑mail.")
+      return
+    }
+    if (!password) {
+      setError("Zadejte heslo.")
+      return
+    }
+    if (!normalizedPhone || !isValidE164(normalizedPhone)) {
+      setError("Telefonní číslo musí být ve formátu E.164, např. +420123456789.")
+      return
+    }
+    if (!isValidOtp(normalizedOtp)) {
+      setError("Zadejte 6místný kód z SMS.")
+      return
+    }
+
+    setVerifying(true)
+    const { error } = await supabase.auth.verifyOtp({
+      phone: normalizedPhone,
+      token: normalizedOtp,
+      type: "sms",
     })
     if (error) {
-      setError(error.message || "Odeslání potvrzení selhalo")
-    } else {
-      setInfo("Poslali jsme nový potvrzovací e‑mail")
-      setCooldown(60)
-      const timer = setInterval(() => {
-        setCooldown((c) => {
-          if (c <= 1) {
-            clearInterval(timer)
-            return 0
-          }
-          return c - 1
-        })
-      }, 1000)
+      setVerifying(false)
+      const msg = (error.message || "").toLowerCase()
+      if (msg.includes("invalid") || msg.includes("token")) {
+        setError("Kód je neplatný nebo vypršel. Pošlete si nový kód a zkuste to znovu.")
+      } else {
+        setError(error.message || "Ověření kódu selhalo")
+      }
+      return
     }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+    if (!accessToken) {
+      setVerifying(false)
+      setError("Nepodařilo se dokončit registraci. Přihlášení po ověření SMS selhalo.")
+      return
+    }
+
+    const claimRes = await fetch("/api/auth/claim-phone", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        phoneNumber: normalizedPhone,
+        email: normalizedEmail,
+      }),
+    })
+    const claimJson = await claimRes.json().catch(() => ({}))
+    if (!claimRes.ok) {
+      setVerifying(false)
+      setError(
+        claimJson?.error ||
+          "Nepodařilo se uložit ověřené telefonní číslo. Zkuste to prosím znovu."
+      )
+      return
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      email: normalizedEmail,
+      password,
+    })
+    if (updateError) {
+      setVerifying(false)
+      const msg = (updateError.message || "").toLowerCase()
+      if (msg.includes("already") || msg.includes("registered")) {
+        setError("Tento e‑mail už je použit u jiného účtu.")
+      } else {
+        setError(updateError.message || "Nepodařilo se nastavit e‑mail / heslo.")
+      }
+      return
+    }
+
+    setVerifying(false)
+    router.push("/dashboard")
   }
 
   const primary = "#00C8D7"
@@ -127,7 +214,7 @@ export default function RegisterPage() {
           <h1 style={{ fontSize: "clamp(42px, 5vw, 52px)", fontWeight: 900, marginBottom: 40, letterSpacing: 1, textTransform: "uppercase" }}>
             REGISTRACE
           </h1>
-          <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 16 }}>
             <input
               type="email"
               placeholder="E-mail"
@@ -164,9 +251,28 @@ export default function RegisterPage() {
                 fontWeight: 500,
               }}
             />
+            <input
+              type="tel"
+              placeholder="Telefon ve formátu +420..."
+              value={phoneNumber}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                background: inputBg,
+                color: inputText,
+                padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                borderRadius: 8,
+                border: "none",
+                outline: "none",
+                fontSize: 17,
+                fontWeight: 500,
+              }}
+            />
             <button
-              type="submit"
-              disabled={loading}
+              type="button"
+              onClick={sendVerificationCode}
+              disabled={sendingSms || cooldown > 0}
               style={{
                 width: "100%",
                 background: primary,
@@ -179,32 +285,62 @@ export default function RegisterPage() {
                 cursor: "pointer",
                 marginTop: 8,
                 textTransform: "uppercase",
+                opacity: sendingSms || cooldown > 0 ? 0.85 : 1,
               }}
             >
-              {loading ? "Probíhá…" : "REGISTROVAT"}
+              {sendingSms
+                ? "Odesílám…"
+                : cooldown > 0
+                  ? `Znovu odeslat (${cooldown}s)`
+                  : "ODESLAT OVĚŘOVACÍ KÓD"}
             </button>
-          </form>
+            {otpSent ? (
+              <>
+                <input
+                  inputMode="numeric"
+                  placeholder="SMS kód (6 číslic)"
+                  value={otpCode}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtpCode(e.target.value)}
+                  style={{
+                    width: "100%",
+                    background: inputBg,
+                    color: inputText,
+                    padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                    borderRadius: 8,
+                    border: "none",
+                    outline: "none",
+                    fontSize: 17,
+                    fontWeight: 500,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={verifyCodeAndFinish}
+                  disabled={verifying}
+                  style={{
+                    width: "100%",
+                    background: white,
+                    color: "#000000",
+                    padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                    borderRadius: 8,
+                    border: "none",
+                    fontWeight: 800,
+                    fontSize: 19,
+                    cursor: "pointer",
+                    marginTop: 4,
+                    textTransform: "uppercase",
+                    opacity: verifying ? 0.85 : 1,
+                  }}
+                >
+                  {verifying ? "Ověřuji…" : "OVĚŘIT KÓD"}
+                </button>
+              </>
+            ) : null}
+          </div>
           {error ? <p style={{ color: "#F87171", marginTop: 16, fontWeight: 600 }}>{error}</p> : null}
           {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}
           
           <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-            {showResend && (
-              <button
-                onClick={resendConfirmation}
-                disabled={cooldown > 0}
-                style={{
-                  background: "transparent",
-                  color: primary,
-                  border: "none",
-                  cursor: cooldown > 0 ? "not-allowed" : "pointer",
-                  opacity: cooldown > 0 ? 0.6 : 1,
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                {cooldown > 0 ? `Zaslat znovu (${cooldown}s)` : "Zaslat potvrzovací e‑mail znovu"}
-              </button>
-            )}
             <p style={{ fontWeight: 600, fontSize: 16 }}>
               <span style={{ opacity: 0.7 }}>Máte účet?</span>{" "}
               <a href="/login" style={{ color: primary, textDecoration: "none", fontWeight: 800 }}>
