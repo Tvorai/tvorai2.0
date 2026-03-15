@@ -181,8 +181,6 @@ export default function AccountPage() {
           }
           .account-feedback {
             padding-top: 0;
-            max-width: 560px;
-            margin: 0 auto;
           }
           .account-feedback-actions {
             justify-content: center;
@@ -193,9 +191,8 @@ export default function AccountPage() {
           }
           .account-feedback-text {
             text-align: justify;
-            text-align-last: justify;
-            padding-inline: 0;
-            hyphens: auto;
+            text-align-last: center;
+            padding-inline: 12px;
           }
         }
       `}</style>
