@@ -147,6 +147,7 @@ export default function AppPage() {
           return
         }
         setPreviewUrl(data.url)
+        setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
       } catch (e: any) {
@@ -177,6 +178,7 @@ export default function AppPage() {
           setActionError(data?.error || "Chyba generování videa")
           return
         }
+        setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
         pollTask(data.taskId)
@@ -201,6 +203,7 @@ export default function AppPage() {
           setActionError(data?.error || "Chyba generování videa")
           return
         }
+        setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
         pollTask(data.taskId)
@@ -226,6 +229,7 @@ export default function AppPage() {
       const status = data.task?.status
       if (status === "TASK_STATUS_SUCCEED") {
         setLoading(false)
+        if (data.jobId) setPreviewJobId(data.jobId)
         const videoUrl = data.videos?.[0]?.video_url
         if (videoUrl) {
           setPreviewUrl(videoUrl)
@@ -251,7 +255,7 @@ export default function AppPage() {
   async function handleDownload() {
     if (!previewUrl) return
     try {
-      if (tab === "t2i" && previewJobId) {
+      if (previewJobId) {
         window.location.href = `/api/history/download?id=${encodeURIComponent(previewJobId)}`
         return
       }

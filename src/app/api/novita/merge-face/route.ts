@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
             provider_job_id: taskId,
             status: "running"
         }).eq("id", job.id)
-        return NextResponse.json({ taskId })
+        return NextResponse.json({ taskId, jobId: job.id })
     }
 
     // 6. If it's sync (has image_file), upload to S3
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    return NextResponse.json({ url: finalUrl })
+    return NextResponse.json({ url: finalUrl, jobId: job?.id || null })
   } catch (e: any) {
     console.error("[Novita MergeFace] Unexpected error:", e)
     // Refund

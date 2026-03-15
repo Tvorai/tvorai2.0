@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ taskId })
+    return NextResponse.json({ taskId, jobId: job?.id || null })
   } catch (e: any) {
     console.error("[Novita I2V] Unexpected error:", e)
     // Refund

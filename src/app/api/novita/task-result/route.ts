@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
       console.warn(`[TaskResult] No job found in DB for taskId: ${taskId}`)
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json({ ...data, jobId: job?.id || null })
   } catch (e: any) {
     console.error(`[TaskResult] Unexpected error for task ${taskId}:`, e)
     return NextResponse.json({ error: e?.message || "Upstream error" }, { status: 500 })
