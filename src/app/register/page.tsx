@@ -297,31 +297,33 @@ export default function RegisterPage() {
                 fontWeight: 500,
               }}
             />
-            <button
-              type="button"
-              onClick={sendVerificationCode}
-              disabled={sendingSms || cooldown > 0}
-              style={{
-                width: "100%",
-                background: primary,
-                color: "#000000",
-                padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
-                borderRadius: 8,
-                border: "none",
-                fontWeight: 800,
-                fontSize: 19,
-                cursor: "pointer",
-                marginTop: 8,
-                textTransform: "uppercase",
-                opacity: sendingSms || cooldown > 0 ? 0.85 : 1,
-              }}
-            >
-              {sendingSms
-                ? "Odesílám…"
-                : cooldown > 0
-                  ? `Znovu odeslat (${cooldown}s)`
-                  : "ODESLAT OVĚŘOVACÍ KÓD"}
-            </button>
+            {!otpVerified ? (
+              <button
+                type="button"
+                onClick={sendVerificationCode}
+                disabled={sendingSms || cooldown > 0}
+                style={{
+                  width: "100%",
+                  background: primary,
+                  color: "#000000",
+                  padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                  borderRadius: 8,
+                  border: "none",
+                  fontWeight: 800,
+                  fontSize: 19,
+                  cursor: "pointer",
+                  marginTop: 8,
+                  textTransform: "uppercase",
+                  opacity: sendingSms || cooldown > 0 ? 0.85 : 1,
+                }}
+              >
+                {sendingSms
+                  ? "Odesílám…"
+                  : cooldown > 0
+                    ? `Znovu odeslat (${cooldown}s)`
+                    : "ODESLAT OVĚŘOVACÍ KÓD"}
+              </button>
+            ) : null}
             {otpSent && !otpVerified ? (
               <>
                 <input

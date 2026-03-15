@@ -45,7 +45,6 @@ export default function AccountPage() {
         return
       }
       if (!canceled) {
-        setEmail(user.email ?? "")
         const fullName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || ""
         setName(fullName)
 
@@ -55,7 +54,10 @@ export default function AccountPage() {
           .select('*')
           .eq('id', user.id)
           .single()
-        if (!canceled) setProfile(profileData)
+        if (!canceled) {
+          setProfile(profileData)
+          setEmail(profileData?.email ?? user.email ?? "")
+        }
 
         // Fetch subscription
         const { data: subData } = await supabase
