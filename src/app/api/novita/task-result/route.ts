@@ -9,6 +9,7 @@ const supabase = createClient(
 
 export async function GET(req: NextRequest) {
   const taskId = req.nextUrl.searchParams.get("taskId")
+  const jobIdFromQuery = req.nextUrl.searchParams.get("jobId")
   const key = process.env.NOVITA_API_KEY
   
   if (!taskId) {
@@ -39,11 +40,29 @@ export async function GET(req: NextRequest) {
     console.log(`[TaskResult] Task ${taskId} status: ${status}`)
 
     // Look up the job in our DB
-    const { data: job } = await supabase
+    let job: any = null
+    if (jobIdFromQuery) {
+      const { data: byId } = await (supabase as any)
         .from("generation_jobs")
-        .select("id, user_id, status, cost")
+        .select("id, user_id, status, cost, provider_job_id")
+        .eq("id", jobIdFromQuery)
+        .maybeSingle()
+      job = byId
+      if (job?.id && !job?.provider_job_id) {
+        await (supabase as any)
+          .from("generation_jobs")
+          .update({ provider_job_id: taskId, status: "running" })
+          .eq("id", job.id)
+        job.provider_job_id = taskId
+      }
+    } else {
+      const { data: byTask } = await (supabase as any)
+        .from("generation_jobs")
+        .select("id, user_id, status, cost, provider_job_id")
         .eq("provider_job_id", taskId)
-        .single()
+        .maybeSingle()
+      job = byTask
+    }
     
     if (job?.id) {
         if (status === "TASK_STATUS_SUCCEED" && job.status !== "succeeded") {
@@ -83,9 +102,16 @@ export async function GET(req: NextRequest) {
             }
             
             // Refund
-            const { data: profile } = await supabase.from("profiles").select("credits").eq("id", job.user_id).single()
+            const { data: profile } = await (supabase as any)
+              .from("profiles")
+              .select("credits")
+              .eq("id", job.user_id)
+              .maybeSingle()
             if (profile) {
-                await supabase.from("profiles").update({ credits: profile.credits + job.cost }).eq("id", job.user_id)
+                await (supabase as any)
+                  .from("profiles")
+                  .update({ credits: ((profile as any).credits || 0) + (job.cost || 0) })
+                  .eq("id", job.user_id)
                 console.log(`[TaskResult] Refunded ${job.cost} credits to user ${job.user_id}`)
             }
         }

@@ -218,7 +218,7 @@ export default function AppPage() {
         setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
-        pollTask(data.taskId)
+        pollTask(data.taskId, data.jobId || null)
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
@@ -243,7 +243,7 @@ export default function AppPage() {
         setPreviewJobId(data.jobId || null)
         setCredits((c) => (c !== null ? c - cost : null))
         window.dispatchEvent(new Event("credits-updated"))
-        pollTask(data.taskId)
+        pollTask(data.taskId, data.jobId || null)
       } catch (e: any) {
         setLoading(false)
         setActionError(e?.message || "Chyba sítě")
@@ -252,9 +252,13 @@ export default function AppPage() {
     }
   }
 
-  async function pollTask(taskId: string) {
+  async function pollTask(taskId: string, jobId: string | null) {
     try {
-      const res = await fetch(`/api/novita/task-result?taskId=${taskId}`)
+      if (jobId) setPreviewJobId(jobId)
+      const url = jobId
+        ? `/api/novita/task-result?taskId=${encodeURIComponent(taskId)}&jobId=${encodeURIComponent(jobId)}`
+        : `/api/novita/task-result?taskId=${encodeURIComponent(taskId)}`
+      const res = await fetch(url)
       const data = await res.json()
       
       if (!res.ok) {
@@ -278,14 +282,14 @@ export default function AppPage() {
         setActionError(data.task?.reason || "Generování selhalo")
       } else {
         // Continue polling
-        setTimeout(() => pollTask(taskId), 3000)
+        setTimeout(() => pollTask(taskId, jobId), 3000)
       }
     } catch (e: any) {
        // Network error during poll, retry once or twice? Or just stop.
        // For now, retry after delay, but if persistent error, maybe stop?
        // We'll just retry.
        console.error("Poll error", e)
-       setTimeout(() => pollTask(taskId), 3000)
+       setTimeout(() => pollTask(taskId, jobId), 3000)
     }
   }
 

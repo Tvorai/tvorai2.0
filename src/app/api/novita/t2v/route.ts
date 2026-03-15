@@ -88,6 +88,10 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("[Novita T2V] Failed to create job record", e)
   }
+  if (!job?.id) {
+    await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
+    return NextResponse.json({ error: "Nepodařilo se vytvořit job v databázi." }, { status: 500 })
+  }
 
   try {
     console.log("[Novita T2V] Calling Wan 2.2 T2V API...")
@@ -135,17 +139,16 @@ export async function POST(req: NextRequest) {
     console.log("[Novita T2V] API task created:", taskId)
     
     // 4. Update Job Record with task_id and status running
-    if (job?.id) {
-        const { error: updateError } = await supabase.from("generation_jobs").update({ 
-            provider_job_id: taskId,
-            status: "running"
-        }).eq("id", job.id)
-        
-        if (updateError) {
-          console.error("[Novita T2V] Failed to update job with taskId:", updateError)
-        } else {
-          console.log("[Novita T2V] Job updated with taskId:", taskId, "status: running")
-        }
+    const { error: updateJobError } = await supabase.from("generation_jobs").update({ 
+        provider_job_id: taskId,
+        status: "running"
+    }).eq("id", job.id)
+    
+    if (updateJobError) {
+      console.error("[Novita T2V] Failed to update job with taskId:", updateJobError)
+      await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
+      await failJob(supabase, job.id, updateJobError.message)
+      return NextResponse.json({ error: "Nepodařilo se uložit taskId do databáze." }, { status: 500 })
     }
 
     return NextResponse.json({ taskId, jobId: job?.id || null })
