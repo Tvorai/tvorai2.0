@@ -97,6 +97,41 @@ export default function AppPage() {
     return "2048x2048"
   }
 
+  async function resizeImageFile(file: File, maxDim: number): Promise<File> {
+    const isImage = (file.type || "").toLowerCase().startsWith("image/")
+    if (!isImage) return file
+
+    const bitmap = await createImageBitmap(file)
+    const w = bitmap.width
+    const h = bitmap.height
+
+    const scale = Math.min(1, maxDim / Math.max(w, h))
+    if (scale >= 1) return file
+
+    const outW = Math.max(1, Math.round(w * scale))
+    const outH = Math.max(1, Math.round(h * scale))
+
+    const canvas = document.createElement("canvas")
+    canvas.width = outW
+    canvas.height = outH
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return file
+
+    ctx.drawImage(bitmap, 0, 0, outW, outH)
+
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+        "image/jpeg",
+        0.92
+      )
+    })
+
+    const baseName = (file.name || "image").replace(/\.[^/.]+$/, "")
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" })
+  }
+
   async function handleAction() {
     setActionError("")
 
@@ -135,9 +170,11 @@ export default function AppPage() {
       if (!swapSrc || !swapDst) return
       try {
         setLoading(true)
+        const face = await resizeImageFile(swapSrc, 2048)
+        const target = await resizeImageFile(swapDst, 2048)
         const fd = new FormData()
-        fd.append("face", swapSrc)
-        fd.append("target", swapDst)
+        fd.append("face", face)
+        fd.append("target", target)
         if (userId) fd.append("userId", userId)
         const res = await fetch("/api/novita/merge-face", { method: "POST", body: fd })
         const data = await res.json()
