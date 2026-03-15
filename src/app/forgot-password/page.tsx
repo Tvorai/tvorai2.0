@@ -68,15 +68,15 @@ export default function ForgotPasswordPage() {
           background: bg,
         }}
       >
-        <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+        <div style={{ width: "100%", maxWidth: 520, textAlign: "center" }}>
           <div style={{ marginBottom: 40, display: "flex", justifyContent: "center" }}>
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ width: 100, height: 100, objectFit: "contain" }}
+              style={{ width: 120, height: 120, objectFit: "contain" }}
             />
           </div>
-          <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 28, letterSpacing: 1, textTransform: "uppercase" }}>
+          <h1 style={{ fontSize: "clamp(36px, 4.3vw, 46px)", fontWeight: 900, marginBottom: 28, letterSpacing: 1, textTransform: "uppercase" }}>
             OBNOVA HESLA
           </h1>
           <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
@@ -90,11 +90,11 @@ export default function ForgotPasswordPage() {
                 width: "100%",
                 background: inputBg,
                 color: inputText,
-                padding: "16px 20px",
+                padding: "clamp(16px, 1.8vw, 18px) clamp(20px, 2.2vw, 24px)",
                 borderRadius: 8,
                 border: "none",
                 outline: "none",
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 500,
               }}
             />
@@ -105,11 +105,11 @@ export default function ForgotPasswordPage() {
                 width: "100%",
                 background: primary,
                 color: "#000000",
-                padding: "16px 20px",
+                padding: "clamp(16px, 1.8vw, 18px) clamp(20px, 2.2vw, 24px)",
                 borderRadius: 8,
                 border: "none",
                 fontWeight: 800,
-                fontSize: 16,
+                fontSize: 18,
                 cursor: "pointer",
                 marginTop: 8,
                 textTransform: "uppercase",
