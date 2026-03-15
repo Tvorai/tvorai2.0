@@ -146,7 +146,7 @@ export default function AccountPage() {
           width: 100%;
         }
         .account-feedback-text {
-          text-align: center;
+          text-align: left;
           font-weight: 600;
           line-height: 1.55;
           color: #E5E7EB;
@@ -190,9 +190,8 @@ export default function AccountPage() {
             min-width: 0;
           }
           .account-feedback-text {
-            text-align: justify;
-            text-align-last: center;
-            padding-inline: 12px;
+            text-align: left;
+            padding-inline: 0;
           }
         }
       `}</style>
