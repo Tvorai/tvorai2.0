@@ -86,6 +86,19 @@ async function safeUpdateById(
   throw new Error(`[DB] Update '${table}' failed after retries`)
 }
 
+export async function markJobRunningWithTaskId(
+  supabase: SupabaseClient,
+  jobId: string,
+  taskId: string
+) {
+  if (!jobId || !taskId) return
+  await safeUpdateById(supabase, "generation_jobs", jobId, {
+    status: "running",
+    provider_job_id: taskId,
+    task_id: taskId,
+  })
+}
+
 export async function uploadToS3(
   buffer: Buffer,
   key: string,

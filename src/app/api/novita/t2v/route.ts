@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { createJob, failJob } from "@/lib/storage-utils"
+import { createJob, failJob, markJobRunningWithTaskId } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -139,15 +139,12 @@ export async function POST(req: NextRequest) {
     console.log("[Novita T2V] API task created:", taskId)
     
     // 4. Update Job Record with task_id and status running
-    const { error: updateJobError } = await supabase.from("generation_jobs").update({ 
-        provider_job_id: taskId,
-        status: "running"
-    }).eq("id", job.id)
-    
-    if (updateJobError) {
-      console.error("[Novita T2V] Failed to update job with taskId:", updateJobError)
+    try {
+      await markJobRunningWithTaskId(supabase as any, job.id, taskId)
+    } catch (e: any) {
+      console.error("[Novita T2V] Failed to update job with taskId:", e)
       await supabase.from("profiles").update({ credits: profile.credits }).eq("id", userId)
-      await failJob(supabase, job.id, updateJobError.message)
+      await failJob(supabase, job.id, e?.message || "Failed to store taskId")
       return NextResponse.json({ error: "Nepodařilo se uložit taskId do databáze." }, { status: 500 })
     }
 

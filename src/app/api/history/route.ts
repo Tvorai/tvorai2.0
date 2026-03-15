@@ -40,7 +40,7 @@ async function finalizeNovitaVideoJob(
   supabase: ReturnType<typeof createClient>,
   job: any
 ): Promise<any> {
-  const taskId = String(job?.provider_job_id ?? "")
+  const taskId = String(job?.provider_job_id ?? job?.task_id ?? "")
   const key = process.env.NOVITA_API_KEY
   if (!taskId || !key) return job
 

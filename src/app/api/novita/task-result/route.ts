@@ -44,24 +44,35 @@ export async function GET(req: NextRequest) {
     if (jobIdFromQuery) {
       const { data: byId } = await (supabase as any)
         .from("generation_jobs")
-        .select("id, user_id, status, cost, provider_job_id")
+        .select("*")
         .eq("id", jobIdFromQuery)
         .maybeSingle()
       job = byId
-      if (job?.id && !job?.provider_job_id) {
-        await (supabase as any)
-          .from("generation_jobs")
-          .update({ provider_job_id: taskId, status: "running" })
-          .eq("id", job.id)
-        job.provider_job_id = taskId
+      if (job?.id && !job?.provider_job_id && !job?.task_id) {
+        try {
+          await (supabase as any)
+            .from("generation_jobs")
+            .update({ provider_job_id: taskId, task_id: taskId, status: "running" })
+            .eq("id", job.id)
+        } catch {}
       }
     } else {
-      const { data: byTask } = await (supabase as any)
+      const byProvider = await (supabase as any)
         .from("generation_jobs")
-        .select("id, user_id, status, cost, provider_job_id")
+        .select("*")
         .eq("provider_job_id", taskId)
         .maybeSingle()
-      job = byTask
+
+      if (!byProvider?.error && byProvider?.data) {
+        job = byProvider.data
+      } else {
+        const byTask = await (supabase as any)
+          .from("generation_jobs")
+          .select("*")
+          .eq("task_id", taskId)
+          .maybeSingle()
+        if (!byTask?.error && byTask?.data) job = byTask.data
+      }
     }
     
     if (job?.id) {

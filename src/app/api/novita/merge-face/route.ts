@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { createJob, completeJobWithAsset, uploadToS3, getSignedUrlForAsset, failJob } from "@/lib/storage-utils"
+import { createJob, completeJobWithAsset, uploadToS3, getSignedUrlForAsset, failJob, markJobRunningWithTaskId } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -169,10 +169,7 @@ export async function POST(req: NextRequest) {
     // 5. If it's async (has taskId), update status to running
     if (taskId && job?.id) {
         console.log("[Novita MergeFace] Async task detected, updating status to running. TaskID:", taskId)
-        await supabase.from("generation_jobs").update({ 
-            provider_job_id: taskId,
-            status: "running"
-        }).eq("id", job.id)
+        await markJobRunningWithTaskId(supabase as any, job.id, taskId)
         return NextResponse.json({ taskId, jobId: job.id })
     }
 
