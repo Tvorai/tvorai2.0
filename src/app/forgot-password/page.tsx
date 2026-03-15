@@ -68,15 +68,15 @@ export default function ForgotPasswordPage() {
           background: bg,
         }}
       >
-        <div style={{ width: "100%", maxWidth: 520, textAlign: "center" }}>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ marginBottom: 40, display: "flex", justifyContent: "center" }}>
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ width: 120, height: 120, objectFit: "contain" }}
+              style={{ width: 110, height: 110, objectFit: "contain" }}
             />
           </div>
-          <h1 style={{ fontSize: "clamp(36px, 4.3vw, 46px)", fontWeight: 900, marginBottom: 28, letterSpacing: 1, textTransform: "uppercase" }}>
+          <h1 style={{ fontSize: "clamp(36px, 4.3vw, 44px)", fontWeight: 900, marginBottom: 28, letterSpacing: 1, textTransform: "uppercase" }}>
             OBNOVA HESLA
           </h1>
           <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
@@ -90,11 +90,11 @@ export default function ForgotPasswordPage() {
                 width: "100%",
                 background: inputBg,
                 color: inputText,
-                padding: "clamp(16px, 1.8vw, 18px) clamp(20px, 2.2vw, 24px)",
+                padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
                 borderRadius: 8,
                 border: "none",
                 outline: "none",
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: 500,
               }}
             />
@@ -105,11 +105,11 @@ export default function ForgotPasswordPage() {
                 width: "100%",
                 background: primary,
                 color: "#000000",
-                padding: "clamp(16px, 1.8vw, 18px) clamp(20px, 2.2vw, 24px)",
+                padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
                 borderRadius: 8,
                 border: "none",
                 fontWeight: 800,
-                fontSize: 18,
+                fontSize: 17,
                 cursor: "pointer",
                 marginTop: 8,
                 textTransform: "uppercase",
