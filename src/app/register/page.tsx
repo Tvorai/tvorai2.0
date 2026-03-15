@@ -54,6 +54,23 @@ export default function RegisterPage() {
     }
 
     setSendingSms(true)
+    const checkRes = await fetch("/api/auth/check-phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber: normalizedPhone }),
+    })
+    const checkJson = await checkRes.json().catch(() => ({}))
+    if (!checkRes.ok) {
+      setSendingSms(false)
+      setError(checkJson?.error || "Nepodařilo se ověřit telefonní číslo. Zkuste to prosím znovu.")
+      return
+    }
+    if (checkJson?.exists) {
+      setSendingSms(false)
+      setError("telefoní číslo už je použité")
+      return
+    }
+
     const { error } = await supabase.auth.signInWithOtp({
       phone: normalizedPhone,
     })
@@ -71,7 +88,7 @@ export default function RegisterPage() {
 
     setOtpSent(true)
     setInfo("Ověřovací kód jsme poslali přes SMS. Zadejte 6místný kód.")
-    setCooldown(60)
+    setCooldown(120)
   }
 
   async function verifyCodeAndFinish() {
@@ -253,7 +270,7 @@ export default function RegisterPage() {
             />
             <input
               type="tel"
-              placeholder="Telefon ve formátu +420..."
+              placeholder="Telefon ve formátu +420 nebo +421..."
               value={phoneNumber}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
               required
