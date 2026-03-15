@@ -42,6 +42,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
   const phoneNumber = normalizePhone(String(body?.phoneNumber || ""))
   const email = String(body?.email || "").trim()
+  const password = String(body?.password || "")
 
   if (!phoneNumber) {
     return NextResponse.json({ error: "Telefonní číslo je povinné." }, { status: 400 })
@@ -51,6 +52,13 @@ export async function POST(req: Request) {
       { error: "Telefonní číslo musí být ve formátu E.164, např. +420123456789." },
       { status: 400 }
     )
+  }
+
+  if (!email) {
+    return NextResponse.json({ error: "E‑mail je povinný." }, { status: 400 })
+  }
+  if (!password) {
+    return NextResponse.json({ error: "Heslo je povinné." }, { status: 400 })
   }
 
   const supabaseAdmin = createClient(url, service)
@@ -76,8 +84,23 @@ export async function POST(req: Request) {
     )
   }
 
-  const patch: Record<string, any> = { phone_number: phoneNumber }
-  if (email) patch.email = email
+  const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
+    user.id,
+    { email, password, email_confirm: true } as any
+  )
+
+  if (authUpdateError) {
+    const msg = (authUpdateError.message || "").toLowerCase()
+    if (msg.includes("already") || msg.includes("registered")) {
+      return NextResponse.json({ error: "Tento e‑mail už je použit u jiného účtu." }, { status: 409 })
+    }
+    return NextResponse.json(
+      { error: authUpdateError.message || "Nepodařilo se uložit e‑mail / heslo." },
+      { status: 400 }
+    )
+  }
+
+  const patch: Record<string, any> = { phone_number: phoneNumber, email }
 
   const { error: updateError } = await supabaseAdmin
     .from("profiles")
@@ -100,4 +123,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true })
 }
-

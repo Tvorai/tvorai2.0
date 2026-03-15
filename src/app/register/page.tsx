@@ -10,11 +10,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [otpSent, setOtpSent] = useState(false)
+  const [otpVerified, setOtpVerified] = useState(false)
   const [otpCode, setOtpCode] = useState("")
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
   const [sendingSms, setSendingSms] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [cooldown, setCooldown] = useState(0)
 
   function normalizePhone(input: string): string {
@@ -42,6 +44,7 @@ export default function RegisterPage() {
     setInfo("")
     if (sendingSms) return
     if (cooldown > 0) return
+    if (otpVerified) return
 
     const normalizedPhone = normalizePhone(phoneNumber)
     if (!normalizedPhone) {
@@ -91,23 +94,14 @@ export default function RegisterPage() {
     setCooldown(120)
   }
 
-  async function verifyCodeAndFinish() {
+  async function verifyCode() {
     setError("")
     setInfo("")
     if (verifying) return
 
-    const normalizedEmail = email.trim()
     const normalizedPhone = normalizePhone(phoneNumber)
     const normalizedOtp = otpCode.replace(/\s+/g, "").trim()
 
-    if (!normalizedEmail) {
-      setError("Zadejte e‑mail.")
-      return
-    }
-    if (!password) {
-      setError("Zadejte heslo.")
-      return
-    }
     if (!normalizedPhone || !isValidE164(normalizedPhone)) {
       setError("Telefonní číslo musí být ve formátu E.164, např. +420123456789.")
       return
@@ -134,11 +128,42 @@ export default function RegisterPage() {
       return
     }
 
+    setVerifying(false)
+    setOtpVerified(true)
+    setInfo("Kód byl ověřen.")
+  }
+
+  async function register() {
+    setError("")
+    setInfo("")
+    if (registering) return
+
+    const normalizedEmail = email.trim()
+    const normalizedPhone = normalizePhone(phoneNumber)
+
+    if (!otpVerified) {
+      setError("Nejdřív ověřte telefonní číslo pomocí SMS kódu.")
+      return
+    }
+    if (!normalizedEmail) {
+      setError("Zadejte e‑mail.")
+      return
+    }
+    if (!password) {
+      setError("Zadejte heslo.")
+      return
+    }
+    if (!normalizedPhone || !isValidE164(normalizedPhone)) {
+      setError("Telefonní číslo musí být ve formátu E.164, např. +420123456789.")
+      return
+    }
+
+    setRegistering(true)
     const { data: sessionData } = await supabase.auth.getSession()
     const accessToken = sessionData.session?.access_token
     if (!accessToken) {
-      setVerifying(false)
-      setError("Nepodařilo se dokončit registraci. Přihlášení po ověření SMS selhalo.")
+      setRegistering(false)
+      setError("Nejste přihlášeni. Zkuste znovu ověřit SMS kód.")
       return
     }
 
@@ -151,34 +176,20 @@ export default function RegisterPage() {
       body: JSON.stringify({
         phoneNumber: normalizedPhone,
         email: normalizedEmail,
+        password,
       }),
     })
     const claimJson = await claimRes.json().catch(() => ({}))
     if (!claimRes.ok) {
-      setVerifying(false)
+      setRegistering(false)
       setError(
         claimJson?.error ||
-          "Nepodařilo se uložit ověřené telefonní číslo. Zkuste to prosím znovu."
+          "Registrace selhala. Zkuste to prosím znovu."
       )
       return
     }
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      email: normalizedEmail,
-      password,
-    })
-    if (updateError) {
-      setVerifying(false)
-      const msg = (updateError.message || "").toLowerCase()
-      if (msg.includes("already") || msg.includes("registered")) {
-        setError("Tento e‑mail už je použit u jiného účtu.")
-      } else {
-        setError(updateError.message || "Nepodařilo se nastavit e‑mail / heslo.")
-      }
-      return
-    }
-
-    setVerifying(false)
+    setRegistering(false)
     router.push("/dashboard")
   }
 
@@ -311,7 +322,7 @@ export default function RegisterPage() {
                   ? `Znovu odeslat (${cooldown}s)`
                   : "ODESLAT OVĚŘOVACÍ KÓD"}
             </button>
-            {otpSent ? (
+            {otpSent && !otpVerified ? (
               <>
                 <input
                   inputMode="numeric"
@@ -332,7 +343,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  onClick={verifyCodeAndFinish}
+                  onClick={verifyCode}
                   disabled={verifying}
                   style={{
                     width: "100%",
@@ -352,6 +363,29 @@ export default function RegisterPage() {
                   {verifying ? "Ověřuji…" : "OVĚŘIT KÓD"}
                 </button>
               </>
+            ) : null}
+            {otpVerified ? (
+              <button
+                type="button"
+                onClick={register}
+                disabled={registering}
+                style={{
+                  width: "100%",
+                  background: primary,
+                  color: "#000000",
+                  padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                  borderRadius: 8,
+                  border: "none",
+                  fontWeight: 800,
+                  fontSize: 19,
+                  cursor: "pointer",
+                  marginTop: 4,
+                  textTransform: "uppercase",
+                  opacity: registering ? 0.85 : 1,
+                }}
+              >
+                {registering ? "Probíhá…" : "REGISTROVAT"}
+              </button>
             ) : null}
           </div>
           {error ? <p style={{ color: "#F87171", marginTop: 16, fontWeight: 600 }}>{error}</p> : null}
