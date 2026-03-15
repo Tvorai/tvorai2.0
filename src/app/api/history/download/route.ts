@@ -7,40 +7,98 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 )
 
+function pickFirstString(obj: any, keys: string[]): string | null {
+  for (const k of keys) {
+    const v = obj?.[k]
+    if (typeof v === "string" && v.trim()) return v
+  }
+  return null
+}
+
+function guessExtension(s3Key: string | null, mime: string | null, type: string | null): string {
+  const key = String(s3Key ?? "").toLowerCase()
+  const mimeStr = String(mime ?? "").toLowerCase()
+  const t = String(type ?? "").toLowerCase()
+
+  const dot = key.lastIndexOf(".")
+  if (dot >= 0 && dot < key.length - 1) {
+    const ext = key.slice(dot + 1)
+    if (/^[a-z0-9]+$/.test(ext)) return ext
+  }
+
+  if (mimeStr.startsWith("video/")) return "mp4"
+  if (mimeStr.startsWith("image/")) return mimeStr.split("/")[1] || "png"
+  if (t.includes("video") || t === "t2v" || t === "i2v") return "mp4"
+  return "png"
+}
+
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("id")
   if (!jobId) return NextResponse.json({ error: "Missing job ID" }, { status: 400 })
 
   try {
-    // 1. Fetch job from DB - check both tables because of potential sync delay
-    let { data: job, error } = await supabase
-      .from("generation_jobs")
-      .select("s3_key, type")
-      .eq("id", jobId)
-      .single()
+    let job: any = null
+    let source: "generation_jobs" | "generations" | null = null
 
-    if (error || !job?.s3_key) {
-      console.log("[Download] Job not found in generation_jobs or missing s3_key, checking generations table...")
-      const { data: genJob, error: genError } = await supabase
-        .from("generations")
-        .select("s3_key, type")
-        .eq("id", jobId)
-        .single()
-      
+    const { data: genJob, error: genJobError } = await supabase
+      .from("generation_jobs")
+      .select("*")
+      .eq("id", jobId)
+      .maybeSingle()
+
+    if (!genJobError && genJob) {
       job = genJob
-      error = genError
+      source = "generation_jobs"
+    } else {
+      const { data: legacyJob, error: legacyError } = await supabase
+        .from("generations")
+        .select("*")
+        .eq("id", jobId)
+        .maybeSingle()
+
+      if (!legacyError && legacyJob) {
+        job = legacyJob
+        source = "generations"
+      }
     }
 
-    if (error || !job || !job.s3_key) {
-      console.error("[Download] Asset not found in any table:", { jobId, error })
+    if (!job || !source) {
       return NextResponse.json({ error: "Job or asset not found" }, { status: 404 })
     }
 
-    // 2. Generate signed URL with forced download header
-    const ext = job.type === 'video' ? 'mp4' : 'png'
-    const filename = `${job.type}-${jobId}.${ext}`
-    
-    const downloadUrl = await getSignedUrlForAsset(job.s3_key, filename)
+    let s3Key = pickFirstString(job, [
+      "s3_key",
+      "storage_path",
+      "output_s3_key",
+      "video_s3_key",
+      "result_s3_key",
+    ])
+    let mime = pickFirstString(job, ["mime", "content_type", "output_mime"])
+
+    if (!s3Key && source === "generation_jobs") {
+      const { data: asset } = await supabase
+        .from("generation_assets")
+        .select("storage_path, mime")
+        .eq("job_id", jobId)
+        .eq("kind", "output")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (asset?.storage_path) s3Key = asset.storage_path
+      if (!mime && asset?.mime) mime = asset.mime
+    }
+
+    if (!s3Key) {
+      console.error("[Download] No S3 key found for job", { jobId, source })
+      return NextResponse.json({ error: "Job or asset not found" }, { status: 404 })
+    }
+
+    const ext = guessExtension(s3Key, mime, String(job?.type ?? ""))
+    const safeType = String(job?.type ?? "asset") || "asset"
+    const filename = `${safeType}-${jobId}.${ext}`
+
+    const downloadUrl = await getSignedUrlForAsset(s3Key, filename)
 
     // 3. Redirect user to the signed URL
     return NextResponse.redirect(downloadUrl)
