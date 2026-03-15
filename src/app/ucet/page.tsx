@@ -190,7 +190,9 @@ export default function AccountPage() {
             min-width: 0;
           }
           .account-feedback-text {
-            text-align: center;
+            text-align: justify;
+            text-align-last: center;
+            padding-inline: 12px;
           }
         }
       `}</style>
