@@ -176,15 +176,7 @@ export default function UpdatePasswordPage() {
           </div>
         </div>
       </div>
-      <div
-        style={{
-          flex: "1 1 500px",
-          minHeight: "40vh",
-          backgroundImage: "url('/login-imagine.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
+      <div className="auth-hero-image" />
     </div>
   )
 }
