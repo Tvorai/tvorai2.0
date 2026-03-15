@@ -198,6 +198,16 @@ export async function completeJobWithAsset(
 
   console.log("[DB] Completing generation_jobs record", { id: jobId, s3Key, imageUrl: patch.image_url })
   await safeUpdateById(supabase, "generation_jobs", jobId, patch)
+
+  try {
+    await supabase.from("generation_assets").insert({
+      job_id: jobId,
+      kind: "output",
+      storage_path: s3Key,
+      mime,
+    })
+  } catch {}
+
   console.log("[DB] Completed generation_jobs record", { id: jobId })
 }
 

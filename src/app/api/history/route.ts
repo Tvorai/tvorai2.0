@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { getSignedUrlForAsset } from "@/lib/storage-utils"
+import { completeJobWithAsset, downloadAndUploadToS3, failJob, getSignedUrlForAsset } from "@/lib/storage-utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -34,6 +34,64 @@ function pickFirstString(obj: any, keys: string[]): string | null {
     if (typeof v === "string" && v.trim()) return v
   }
   return null
+}
+
+async function finalizeNovitaVideoJob(
+  supabase: ReturnType<typeof createClient>,
+  job: any
+): Promise<any> {
+  const taskId = String(job?.provider_job_id ?? "")
+  const key = process.env.NOVITA_API_KEY
+  if (!taskId || !key) return job
+
+  const res = await fetch(`https://api.novita.ai/v3/async/task-result?task_id=${encodeURIComponent(taskId)}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${key}` },
+  })
+
+  if (!res.ok) return job
+
+  const data = await res.json().catch(() => null)
+  const status = data?.task?.status
+
+  if (status === "TASK_STATUS_SUCCEED") {
+    const videoUrl = data?.videos?.[0]?.video_url
+    if (!videoUrl) return job
+
+    const userId = String(job?.user_id ?? "")
+    const jobId = String(job?.id ?? "")
+    if (!userId || !jobId) return job
+
+    const s3Key = `video/${userId}/${jobId}.mp4`
+    await downloadAndUploadToS3(videoUrl, s3Key, "video/mp4")
+    await completeJobWithAsset(supabase as any, jobId, s3Key, "video/mp4", videoUrl)
+    return { ...job, status: "succeeded", s3_key: s3Key, mime: "video/mp4" }
+  }
+
+  if (status === "TASK_STATUS_FAILED") {
+    const jobId = String(job?.id ?? "")
+    const reason = String(data?.task?.reason || "Unknown Novita error")
+    if (jobId) await failJob(supabase as any, jobId, reason)
+
+    const userId = String(job?.user_id ?? "")
+    const cost = Number(job?.cost || 0)
+    if (userId && cost > 0) {
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("credits")
+        .eq("id", userId)
+        .maybeSingle()
+      if (profile) {
+        await (supabase as any)
+          .from("profiles")
+          .update({ credits: ((profile as any).credits || 0) + cost })
+          .eq("id", userId)
+      }
+    }
+    return { ...job, status: "failed", error: reason }
+  }
+
+  return job
 }
 
 export async function GET(req: NextRequest) {
@@ -99,10 +157,49 @@ export async function GET(req: NextRequest) {
       return bt - at
     }).slice(0, 50)
 
+    const candidates = merged
+      .filter((j) => {
+        const status = String(j?.status ?? "").toLowerCase()
+        if (status === "succeeded" || status === "failed") return false
+        const taskId = String(j?.provider_job_id ?? "").trim()
+        if (!taskId) return false
+        return normalizeType(j?.type, j?.mime, j?.s3_key) === "video"
+      })
+      .slice(0, 2)
+
+    for (const job of candidates) {
+      try {
+        const updated = await finalizeNovitaVideoJob(supabase as any, job)
+        Object.assign(job, updated)
+      } catch {}
+    }
+
+    const jobIds = merged.map((j) => String(j?.id ?? "")).filter(Boolean)
+    const assetMap = new Map<string, { storage_path: string; mime: string | null }>()
+    if (jobIds.length > 0) {
+      const { data: assets } = await supabase
+        .from("generation_assets")
+        .select("job_id, storage_path, mime, kind")
+        .in("job_id", jobIds)
+        .eq("kind", "output")
+
+      for (const a of assets || []) {
+        const id = String((a as any)?.job_id ?? "")
+        const path = String((a as any)?.storage_path ?? "")
+        if (!id || !path) continue
+        if (!assetMap.has(id)) assetMap.set(id, { storage_path: path, mime: (a as any)?.mime ?? null })
+      }
+    }
+
     const jobsWithSignedUrls = await Promise.all(
       merged.map(async (job: any) => {
-        const s3Key = pickFirstString(job, ["s3_key", "storage_path", "output_s3_key", "video_s3_key", "result_s3_key"])
-        const mime = pickFirstString(job, ["mime", "content_type", "output_mime"])
+        let s3Key = pickFirstString(job, ["s3_key", "storage_path", "output_s3_key", "video_s3_key", "result_s3_key"])
+        let mime = pickFirstString(job, ["mime", "content_type", "output_mime"])
+        if (!s3Key) {
+          const asset = assetMap.get(String(job?.id ?? ""))
+          if (asset?.storage_path) s3Key = asset.storage_path
+          if (!mime && asset?.mime) mime = asset.mime
+        }
         const normalized = normalizeType(job.type, mime, s3Key)
 
         let url: string | null = pickFirstString(job, [
