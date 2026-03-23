@@ -121,5 +121,27 @@ export async function POST(req: Request) {
     )
   }
 
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("credits")
+    .eq("id", user.id)
+    .single()
+
+  const current = Number(profile?.credits || 0)
+  if (current < 72) {
+    const delta = 72 - current
+    await supabaseAdmin
+      .from("profiles")
+      .update({ credits: 72 })
+      .eq("id", user.id)
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: user.id,
+      type: "signup_bonus",
+      amount: delta,
+      note: "Signup bonus",
+      balance_after: 72
+    })
+  }
+
   return NextResponse.json({ ok: true })
 }
