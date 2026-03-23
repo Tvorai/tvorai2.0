@@ -191,7 +191,7 @@ export default function Header() {
               <button
                 onClick={() => {
                   setMenuOpen(false)
-                  router.push("/cenik")
+                  router.push("/dobit-kredity")
                 }}
                 style={{
                   width: "100%",
@@ -203,7 +203,7 @@ export default function Header() {
                   cursor: "pointer"
                 }}
               >
-                Ceník
+                Dobít kredity
               </button>
               <button
                 onClick={signOut}

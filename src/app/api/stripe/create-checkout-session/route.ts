@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         },
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/ucet?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cenik`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dobit-kredity`,
       // Metadata on the session itself (useful for checkout.session.completed)
       metadata: {
         user_id: userId,
