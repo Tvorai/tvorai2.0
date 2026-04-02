@@ -190,6 +190,18 @@ export default function RegisterPage() {
       return
     }
 
+    try { 
+      await fetch("/api/smartemailing-sync", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          email: normalizedEmail, 
+        }), 
+      }) 
+    } catch (e) { 
+      console.error("SmartEmailing sync failed", e) 
+    } 
+
     setRegistering(false)
     router.push("/dashboard")
   }
