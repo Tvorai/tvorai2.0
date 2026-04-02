@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         contactlists: [ 
           { 
             id: Number(listId), 
+            status: "confirmed", 
           }, 
         ], 
       }), 
