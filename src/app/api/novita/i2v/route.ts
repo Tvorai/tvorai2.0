@@ -176,6 +176,7 @@ export async function POST(req: NextRequest) {
         prompt,
         width,
         height,
+        duration,
         steps: 30, // Default
         seed: -1
       })
