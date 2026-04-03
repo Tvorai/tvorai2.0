@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   let job: any
   try {
     // Initial job record (queued)
-    job = await createJob(supabase, userId, "video", "wan-2.2-t2v", { prompt, duration, ratio, size }, cost)
+    job = await createJob(supabase, userId, "video", "kling-2.5-turbo-t2v", { prompt, duration, ratio, size }, cost)
     if (job?.id) {
       console.log("[Novita T2V] Job created in DB:", job.id)
     }
@@ -94,44 +94,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    console.log("[Novita T2V] Calling Wan T2V API...")
+    console.log("[Novita T2V] Calling Kling V2.5 Turbo T2V API...")
     
-    let res: Response
-    if (duration === 10) {
-      // Use Wan 2.1 for 10s generation as it supports it better
-      const [width, height] = size.split("*").map(Number)
-      res = await fetch("https://api.novita.ai/v3/async/wan-t2v", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          prompt,
-          width,
-          height,
-          duration: 10,
-          steps: 30,
-          seed: -1
-        })
+    // Kling V2.5 Turbo T2V
+    const res = await fetch("https://api.novita.ai/v3/async/kling-2.5-turbo-t2v", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt,
+        duration: String(duration), // Kling expects string "5" or "10"
+        aspect_ratio: ratio // Kling uses aspect_ratio instead of size/ratio
       })
-    } else {
-      // Use Wan 2.2 for 5s generation
-      res = await fetch("https://api.novita.ai/v3/async/wan-2.2-t2v", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          input: { prompt },
-          parameters: {
-            size,
-            duration: 5
-          }
-        })
-      })
-    }
+    })
 
     if (!res.ok) {
       const text = await res.text()
