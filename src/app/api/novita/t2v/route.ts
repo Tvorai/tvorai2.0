@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
   const prompt = (body.prompt || "").trim()
-  const duration = body.duration || 5
+  const duration = parseInt(String(body.duration || 5), 10)
   const ratio = body.ratio || "16:9"
   const userId = body.userId
   const cost = duration === 10 ? 72 : 36
