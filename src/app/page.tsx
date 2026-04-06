@@ -44,12 +44,22 @@ export default function AppPage() {
       setUserId(userId)
       const { data, error } = await supabase
         .from("profiles")
-        .select("credits")
+        .select("credits, phone_verified")
         .eq("id", userId)
         .maybeSingle()
+      
       if (!canceled) {
-        if (!error && data) setCredits(Number(data.credits) || 0)
-        else setCredits(0)
+        if (!error && data) {
+          if (!data.phone_verified) {
+            // User logged in but phone not verified or registration not finished
+            await supabase.auth.signOut()
+            router.push("/login")
+            return
+          }
+          setCredits(Number(data.credits) || 0)
+        } else {
+          setCredits(0)
+        }
         setLoading(false)
       }
     }

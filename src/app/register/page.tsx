@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [verifying, setVerifying] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [cooldown, setCooldown] = useState(0)
+  const [verificationToken, setVerificationToken] = useState("")
 
   function normalizePhone(input: string): string {
     return input.replace(/\s+/g, "").trim()
@@ -113,25 +114,32 @@ export default function RegisterPage() {
     }
 
     setVerifying(true)
-    const { error } = await supabase.auth.verifyOtp({
-      phone: normalizedPhone,
-      token: normalizedOtp,
-      type: "sms",
-    })
-    if (error) {
-      setVerifying(false)
-      const msg = (error.message || "").toLowerCase()
-      if (msg.includes("invalid") || msg.includes("token")) {
-        setError("Kód je neplatný nebo vypršel. Pošlete si nový kód a zkuste to znovu.")
-      } else {
-        setError(error.message || "Ověření kódu selhalo")
-      }
-      return
-    }
+    try {
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: normalizedPhone,
+          token: normalizedOtp,
+        }),
+      })
 
-    setVerifying(false)
-    setOtpVerified(true)
-    setInfo("Kód byl ověřen.")
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setVerifying(false)
+        setError(data.error || "Ověření kódu selhalo")
+        return
+      }
+
+      setVerifying(false)
+      setOtpVerified(true)
+      setVerificationToken(data.verificationToken)
+      setInfo("Kód byl ověřen.")
+    } catch (err) {
+      setVerifying(false)
+      setError("Nepodařilo se spojit se serverem.")
+    }
   }
 
   async function register() {
@@ -160,50 +168,46 @@ export default function RegisterPage() {
     }
 
     setRegistering(true)
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-    if (!accessToken) {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+          phoneNumber: normalizedPhone,
+          verificationToken,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setRegistering(false)
+        setError(data.error || "Registrace selhala. Zkuste to prosím znovu.")
+        return
+      }
+
+      // SmartEmailing sync
+      try { 
+        await fetch("/api/smartemailing-sync", { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" }, 
+          body: JSON.stringify({ 
+            email: normalizedEmail, 
+          }), 
+        }) 
+      } catch (e) { 
+        console.error("SmartEmailing sync failed", e) 
+      } 
+
+      setInfo("Registrace byla úspěšná! Nyní se můžete přihlásit.")
       setRegistering(false)
-      setError("Nejste přihlášeni. Zkuste znovu ověřit SMS kód.")
-      return
-    }
-
-    const claimRes = await fetch("/api/auth/claim-phone", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        phoneNumber: normalizedPhone,
-        email: normalizedEmail,
-        password,
-      }),
-    })
-    const claimJson = await claimRes.json().catch(() => ({}))
-    if (!claimRes.ok) {
+      setTimeout(() => router.push("/login"), 2000)
+    } catch (err) {
       setRegistering(false)
-      setError(
-        claimJson?.error ||
-          "Registrace selhala. Zkuste to prosím znovu."
-      )
-      return
+      setError("Nepodařilo se spojit se serverem.")
     }
-
-    try { 
-      await fetch("/api/smartemailing-sync", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ 
-          email: normalizedEmail, 
-        }), 
-      }) 
-    } catch (e) { 
-      console.error("SmartEmailing sync failed", e) 
-    } 
-
-    setRegistering(false)
-    router.push("/dashboard")
   }
 
   const primary = "#00C8D7"
