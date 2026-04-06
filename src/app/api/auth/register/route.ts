@@ -58,7 +58,9 @@ export async function POST(req: Request) {
   const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
+    phone: phoneNumber,
     email_confirm: true,
+    phone_confirm: true,
     user_metadata: {
       phone_number: phoneNumber,
       phone_verified: true,
@@ -72,27 +74,18 @@ export async function POST(req: Request) {
   // 4. Update the profile and add credits
   // Note: The handle_new_user trigger in Supabase might have already created a profile for this user.
   // We should update it with the phone number and verified status.
-  const { error: profileError } = await supabaseAdmin
+  const FREE_CREDITS = 72
+  const { error: profileUpdateError } = await supabaseAdmin
     .from("profiles")
     .update({
       phone_number: phoneNumber,
       phone_verified: true,
+      credits: FREE_CREDITS,
     })
     .eq("id", newUser.user.id)
 
-  if (profileError) {
-    console.error("Failed to update profile:", profileError)
-  }
-
-  // 5. Add free credits (72 credits)
-  const FREE_CREDITS = 72
-  const { error: creditsError } = await supabaseAdmin
-    .from("profiles")
-    .update({ credits: FREE_CREDITS })
-    .eq("id", newUser.user.id)
-  
-  if (creditsError) {
-    console.error("Failed to add credits:", creditsError)
+  if (profileUpdateError) {
+    console.error("Failed to update profile:", profileUpdateError)
   }
 
   return NextResponse.json({ ok: true })
