@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     console.error("Failed to update profile:", profileError)
   }
 
-  // 5. Add free credits (e.g., 72 free credits)
+  // 5. Add free credits (72 credits)
   const FREE_CREDITS = 72
   const { error: creditsError } = await supabaseAdmin
     .from("profiles")
