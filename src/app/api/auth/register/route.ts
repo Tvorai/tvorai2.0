@@ -43,15 +43,30 @@ export async function POST(req: Request) {
 
   const supabaseAdmin = createClient(url, service)
 
-  // 2. Check if a user with this email or phone already exists
-  const { data: existingUser } = await supabaseAdmin
+  // 2. Check if a user with this email or phone already exists in Profiles
+  const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
     .from("profiles")
-    .select("id")
+    .select("id, email, phone_number")
     .or(`email.eq.${email},phone_number.eq.${phoneNumber}`)
     .maybeSingle()
 
-  if (existingUser) {
-    return NextResponse.json({ error: "Uživatel s tímto e-mailem nebo telefonem již existuje." }, { status: 409 })
+  if (profileCheckError) {
+    console.error("Profile check error:", profileCheckError)
+  }
+
+  if (existingProfile) {
+    if (existingProfile.email === email) {
+      return NextResponse.json({ error: "Uživatel s tímto e-mailem již existuje." }, { status: 409 })
+    }
+    if (existingProfile.phone_number === phoneNumber) {
+      return NextResponse.json({ error: "Uživatel s tímto telefonním číslem již existuje." }, { status: 409 })
+    }
+  }
+
+  // 2b. Double check in Supabase Auth (security measure)
+  const { data: authUserByEmail } = await supabaseAdmin.auth.admin.getUserByEmail(email)
+  if (authUserByEmail?.user) {
+    return NextResponse.json({ error: "Uživatel s tímto e-mailem již existuje v systému." }, { status: 409 })
   }
 
   // 3. Create the user in Supabase Auth
