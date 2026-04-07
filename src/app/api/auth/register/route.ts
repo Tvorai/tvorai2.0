@@ -70,8 +70,13 @@ export async function POST(req: Request) {
   }
 
   // 2b. Double check in Supabase Auth (security measure)
-  const { data: authUserByEmail } = await supabaseAdmin.auth.admin.getUserByEmail(email)
-  if (authUserByEmail?.user) {
+  const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+  if (listError) {
+    console.error("List users error:", listError)
+  }
+  
+  const authUserByEmail = users?.find(u => u.email === email)
+  if (authUserByEmail) {
     return NextResponse.json({ error: "Uživatel s tímto e-mailem již existuje v systému." }, { status: 409 })
   }
 
