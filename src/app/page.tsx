@@ -50,12 +50,14 @@ export default function AppPage() {
       
       if (!canceled) {
         if (!error && data) {
+          /* Skip phone verification check for now
           if (!data.phone_verified) {
             // User logged in but phone not verified or registration not finished
             await supabase.auth.signOut()
             router.push("/login")
             return
           }
+          */
           setCredits(Number(data.credits) || 0)
         } else {
           setCredits(0)

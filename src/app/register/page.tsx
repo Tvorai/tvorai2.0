@@ -148,12 +148,14 @@ export default function RegisterPage() {
     if (registering) return
 
     const normalizedEmail = email.trim()
-    const normalizedPhone = normalizePhone(phoneNumber)
+    // const normalizedPhone = normalizePhone(phoneNumber)
 
+    /* Skip OTP check for now
     if (!otpVerified) {
       setError("Nejdřív ověřte telefonní číslo pomocí SMS kódu.")
       return
     }
+    */
     if (!normalizedEmail) {
       setError("Zadejte e‑mail.")
       return
@@ -162,10 +164,12 @@ export default function RegisterPage() {
       setError("Zadejte heslo.")
       return
     }
+    /* Skip phone check for now
     if (!normalizedPhone || !isValidE164(normalizedPhone)) {
       setError("Telefonní číslo musí být ve formátu E.164, např. +420123456789.")
       return
     }
+    */
 
     setRegistering(true)
     try {
@@ -175,8 +179,8 @@ export default function RegisterPage() {
         body: JSON.stringify({
           email: normalizedEmail,
           password,
-          phoneNumber: normalizedPhone,
-          verificationToken,
+          // phoneNumber: normalizedPhone,
+          // verificationToken,
         }),
       })
 
@@ -317,6 +321,8 @@ export default function RegisterPage() {
                   fontWeight: 500,
                 }}
               />
+              {/* Phone verification hidden for now */}
+              {/* 
               <input
                 type="tel"
                 placeholder="Telefon ve formátu +420 nebo +421..."
@@ -404,29 +410,28 @@ export default function RegisterPage() {
                   </button>
                 </>
               ) : null}
-              {otpVerified ? (
-                <button
-                  type="button"
-                  onClick={register}
-                  disabled={registering}
-                  style={{
-                    width: "100%",
-                    background: primary,
-                    color: "#000000",
-                    padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
-                    borderRadius: 8,
-                    border: "none",
-                    fontWeight: 800,
-                    fontSize: 19,
-                    cursor: "pointer",
-                    marginTop: 4,
-                    textTransform: "uppercase",
-                    opacity: registering ? 0.85 : 1,
-                  }}
-                >
-                  {registering ? "Probíhá…" : "REGISTROVAT"}
-                </button>
-              ) : null}
+              */}
+              <button
+                type="button"
+                onClick={register}
+                disabled={registering}
+                style={{
+                  width: "100%",
+                  background: primary,
+                  color: "#000000",
+                  padding: "clamp(16px, 1.6vw, 18px) clamp(18px, 2vw, 22px)",
+                  borderRadius: 8,
+                  border: "none",
+                  fontWeight: 800,
+                  fontSize: 19,
+                  cursor: "pointer",
+                  marginTop: 4,
+                  textTransform: "uppercase",
+                  opacity: registering ? 0.85 : 1,
+                }}
+              >
+                {registering ? "Probíhá…" : "REGISTROVAT"}
+              </button>
             </div>
             {error ? <p style={{ color: "#F87171", marginTop: 16, fontWeight: 600 }}>{error}</p> : null}
             {info ? <p style={{ color: primary, marginTop: 16, fontWeight: 600 }}>{info}</p> : null}

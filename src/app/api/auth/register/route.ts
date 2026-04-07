@@ -19,35 +19,41 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const phoneNumber = normalizePhone(String(body?.phoneNumber || ""))
+  const phoneNumber = body?.phoneNumber ? normalizePhone(String(body.phoneNumber)) : null
   const email = String(body?.email || "").trim()
   const password = String(body?.password || "")
-  const verificationToken = String(body?.verificationToken || "")
+  const verificationToken = body?.verificationToken ? String(body.verificationToken) : null
 
-  if (!phoneNumber || !email || !password || !verificationToken) {
-    return NextResponse.json({ error: "Všechna pole jsou povinná." }, { status: 400 })
+  if (!email || !password) {
+    return NextResponse.json({ error: "E-mail a heslo jsou povinné." }, { status: 400 })
   }
 
-  if (!isValidE164(phoneNumber)) {
+  if (phoneNumber && !isValidE164(phoneNumber)) {
     return NextResponse.json(
       { error: "Telefonní číslo musí být ve formátu E.164." },
       { status: 400 }
     )
   }
 
-  // 1. Verify the OTP verification token
-  const verifiedData = verifyVerificationToken(verificationToken)
-  if (!verifiedData || verifiedData.phone !== phoneNumber) {
-    return NextResponse.json({ error: "Ověření telefonu vypršelo. Zkuste znovu." }, { status: 400 })
+  // 1. Verify the OTP verification token if provided
+  if (phoneNumber && verificationToken) {
+    const verifiedData = verifyVerificationToken(verificationToken)
+    if (!verifiedData || verifiedData.phone !== phoneNumber) {
+      return NextResponse.json({ error: "Ověření telefonu vypršelo. Zkuste znovu." }, { status: 400 })
+    }
   }
 
   const supabaseAdmin = createClient(url, service)
 
   // 2. Check if a user with this email or phone already exists in Profiles
+  const orCondition = phoneNumber 
+    ? `email.eq.${email},phone_number.eq.${phoneNumber}`
+    : `email.eq.${email}`
+
   const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
     .from("profiles")
     .select("id, email, phone_number")
-    .or(`email.eq.${email},phone_number.eq.${phoneNumber}`)
+    .or(orCondition)
     .maybeSingle()
 
   if (profileCheckError) {
@@ -73,12 +79,12 @@ export async function POST(req: Request) {
   const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    phone: phoneNumber,
+    phone: phoneNumber || undefined,
     email_confirm: true,
-    phone_confirm: true,
+    phone_confirm: !!phoneNumber,
     user_metadata: {
       phone_number: phoneNumber,
-      phone_verified: true,
+      phone_verified: !!phoneNumber,
     },
   })
 
@@ -94,7 +100,7 @@ export async function POST(req: Request) {
     .from("profiles")
     .update({
       phone_number: phoneNumber,
-      phone_verified: true,
+      phone_verified: !!phoneNumber,
       credits: FREE_CREDITS,
     })
     .eq("id", newUser.user.id)
