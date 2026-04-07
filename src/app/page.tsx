@@ -150,8 +150,9 @@ export default function AppPage() {
 
     // Check credits
     if (credits === null) return
-    if (credits < cost) {
-      setActionError("Nedostatek kreditů pro tuto akci")
+    console.log("[DEBUG] Credits check:", { credits, cost, tab, duration })
+    if (Number(credits) < Number(cost)) {
+      setActionError(`Nedostatek kreditů pro tuto akci (potřeba: ${cost}, máte: ${credits})`)
       return
     }
 
