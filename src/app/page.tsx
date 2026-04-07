@@ -48,6 +48,8 @@ export default function AppPage() {
         .eq("id", userId)
         .maybeSingle()
       
+      console.log("[DEBUG] Supabase profile fetch:", { data, error, userId })
+      
       if (!canceled) {
         if (!error && data) {
           /* Skip phone verification check for now
@@ -58,8 +60,11 @@ export default function AppPage() {
             return
           }
           */
-          setCredits(Number(data.credits) || 0)
+          const userCredits = Number(data.credits) || 0
+          console.log("[DEBUG] Setting credits to:", userCredits)
+          setCredits(userCredits)
         } else {
+          console.log("[DEBUG] No profile or error, setting credits to 0")
           setCredits(0)
         }
         setLoading(false)
