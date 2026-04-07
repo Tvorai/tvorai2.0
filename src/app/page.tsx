@@ -44,7 +44,7 @@ export default function AppPage() {
       setUserId(userId)
       const { data, error } = await supabase
         .from("profiles")
-        .select("credits, phone_verified")
+        .select("credits") // Removed phone_verified to fix 400 error
         .eq("id", userId)
         .maybeSingle()
       
