@@ -81,10 +81,11 @@ export default function AppPage() {
   const cost = useMemo(() => {
     if (tab === "t2i") return 12
     if (tab === "faceswap") return 12
-    if (tab === "i2v") return duration === "10" ? 72 : 36
-    if (tab === "t2v") return duration === "10" ? 72 : 36
+    if (tab === "i2v" || tab === "t2v") {
+      return duration === "10" ? 72 : 36
+    }
     return 12
-  }, [aspect, tab, duration])
+  }, [tab, duration])
 
   async function signOut() {
     await supabase.auth.signOut()
